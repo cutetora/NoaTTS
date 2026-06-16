@@ -16,9 +16,9 @@ tts_auto.flag
 .tts_daemon_pid
 .tts_last_uuid
 
-# ユーザー設定 (実行時に書き換わる)。配布は settings.default.json のみ。
-# settings.json は初回起動時に default からコピー生成される。
-settings.json
+# ユーザー設定 (実行時に書き換わる)。配布は conf/settings.default.json のみ。
+# conf/settings.json は初回起動時に default からコピー生成される。
+conf/settings.json
 
 # ボイスカードの config.json も読み上げで last_used_at が書き換わるため
 # git 管理外。配布は config.default.json のみ (無ければ初回ロードで生成)。

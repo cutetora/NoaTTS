@@ -3,7 +3,9 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 
 BASE_DIR = Path(__file__).parent
-CONFIG_PATH = BASE_DIR / "settings.json"
+# 設定・読み辞書は conf/ に集約 (フォルダ名は config.py との衝突を避け conf)
+CONF_DIR = BASE_DIR / "conf"
+CONFIG_PATH = CONF_DIR / "settings.json"
 
 
 @dataclass
@@ -53,7 +55,7 @@ class AppConfig:
         # (配布物は settings.default.json のみ。ユーザーの設定変更で書き換わる
         #  settings.json は git 管理外にしてある)
         if not CONFIG_PATH.exists():
-            default_path = BASE_DIR / "settings.default.json"
+            default_path = CONF_DIR / "settings.default.json"
             if default_path.exists():
                 try:
                     CONFIG_PATH.write_text(
