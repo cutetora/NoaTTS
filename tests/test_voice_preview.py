@@ -1,7 +1,9 @@
 """Test: save voice then test-generate from saved voice card."""
 import sys, os, time
-sys.path.insert(0, os.path.dirname(__file__))
-os.chdir(os.path.dirname(__file__))
+# tests/ から1つ上 (プロジェクトルート) を import パス兼 CWD にする
+_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, _ROOT)
+os.chdir(_ROOT)
 
 import torch
 torch.set_float32_matmul_precision("high")

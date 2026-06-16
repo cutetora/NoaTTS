@@ -4,8 +4,10 @@ Run with Python 3.11 (CUDA environment)
 """
 import sys
 import os
-sys.path.insert(0, os.path.dirname(__file__))
-os.chdir(os.path.dirname(__file__))
+# tests/ から1つ上 (プロジェクトルート) を import パス兼 CWD にする
+_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, _ROOT)
+os.chdir(_ROOT)
 
 import time
 import numpy as np

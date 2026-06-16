@@ -1,6 +1,7 @@
 """Integration test for all major features."""
 import sys, os, time
-sys.path.insert(0, os.path.dirname(__file__))
+# tests/ から1つ上 (プロジェクトルート) を import パスに通す
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import torch
 torch.set_float32_matmul_precision("high")
