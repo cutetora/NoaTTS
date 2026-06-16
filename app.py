@@ -23,7 +23,7 @@ from config import AppConfig, BASE_DIR
 from voice.voice_manager import VoiceManager, VoiceConfig
 from engine.tts_engine import TTSEngine
 from engine.audio_utils import process_audio, voicevox_notify, check_voice_gender, check_speech_content, trim_silence, check_audio_duration, adjust_speed, trim_interior_pauses
-from mascot import _mascot_head_html, _mascot_js, _APP_CSS
+from ui.mascot import _mascot_head_html, _mascot_js, _APP_CSS
 from engine.text_utils import normalize_tts_text
 from voice.preset_manager import save_preset, load_preset, list_presets
 import engine.models_catalog as mcat
@@ -41,7 +41,7 @@ from batch import (
     save_result_table, export_all,
 )
 
-from ui_voice_create import (
+from ui.ui_voice_create import (
     build_custom_tab, build_design_tab, build_clone_tab, build_tuning_panel,
 )
 
