@@ -95,10 +95,13 @@ class Api:
         return _http("/vram")
 
     def models(self):
-        """irodori の使用可能モデル一覧 (DL状態付き)。daemon 不要。"""
+        """読み上げ用 irodori モデル一覧 (DL状態付き)。daemon 不要。
+        VoiceDesign(role=voicedesign)はボイス作成専用で、読み上げモデルとして
+        切り替えても _model_repo に反映されず選択が戻るため、ここでは除外する。"""
         try:
             import engine.models_catalog as mcat
             entries = mcat.list_for_ui("irodori", include_hf=False)
+            entries = [e for e in entries if e.role != "voicedesign"]
             return {"ok": True, "models": [
                 {"repo_id": e.repo_id, "label": e.label, "role": e.role,
                  "downloaded": mcat.is_downloaded(e.repo_id)} for e in entries]}
