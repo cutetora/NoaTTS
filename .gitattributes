@@ -1,0 +1,10 @@
+# Windows バッチファイルは CRLF を強制する。
+# LF のままだと cmd が if(...) ブロックや goto を誤解釈し、途中で落ちることがある。
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# その他テキストは環境既定に従う
+*.py  text
+*.md  text
+*.txt text
+*.json text

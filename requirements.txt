@@ -1,0 +1,40 @@
+# NoaTTS 依存パッケージ
+#
+# 【重要】PyTorch は CUDA バージョン依存のため、これとは別に先にインストールしてください。
+#   https://pytorch.org/get-started/locally/ から CUDA 対応の torch / torchaudio を入れる。
+#   動作確認環境: Python 3.11 / torch 2.11.0+cu128 (CUDA 12.8)。
+#   torch・torchaudio はこのファイルには含めません(CPU版が入ると動かない/遅いため)。
+#
+# 【重要】下の git+https 依存のインストールには git が必要です。
+#   pip install -r requirements.txt の前に torch を入れておくこと(下記エンジンが依存)。
+
+# --- TTS エンジン (PyPIに無く GitHub から取得。動作確認コミットに固定) ---
+# dacvae: Irodori-TTS が依存する音声コーデック。PyPI に無く、irodori-tts の
+#   依存メタには名前しか書かれていないため、ここで GitHub URL を明示する。
+#   (これが無いと「No matching distribution found for dacvae」で失敗する)
+#   irodori-tts より先に書いて、先にインストールされるようにする。
+dacvae @ git+https://github.com/facebookresearch/dacvae.git@414c20785fc3a28373073ea8ef7a1316eeeaca6e
+# Irodori-TTS (既定エンジン)
+irodori-tts @ git+https://github.com/Aratako/Irodori-TTS.git@eaf74d6a19138f743acb5b71a445fd25a57db987
+# Qwen3-TTS (settings.json の tts_engine_type=qwen3 で切替)
+qwen-tts @ git+https://github.com/dffdeeq/Qwen3-TTS-streaming.git@aad92ef8746d8ebcf8aaf8767d7e70b2d5106116
+
+# --- Web UI / セリフ一括生成 (app.py) ---
+gradio>=6.0,<7        # 動作確認: 6.12.0
+pandas
+openpyxl
+
+# --- 音声処理・解析 ---
+soundfile
+librosa
+numpy
+faster-whisper        # セリフ内容チェック (Whisper 照合)
+audiotsm              # 話速調整 (WSOLA)
+demucs                # ボイスクローン時の BGM 除去 (任意機能)
+
+# --- GUI / トレイ常駐 / 音声再生 (tray.py, tts_api_window.py, webview_window.py, daemon) ---
+pywebview
+pystray
+Pillow
+sounddevice
+pywin32               # Windows only (named pipe)

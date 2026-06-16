@@ -1,0 +1,90 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# 生成音声
+output/
+
+# ランタイム生成物 (daemon が実行中に作る)
+_tts_say.txt
+_active_voice.txt
+tts_auto.flag
+.tts_daemon_pid
+.tts_last_uuid
+
+# ユーザー設定 (実行時に書き換わる)。配布は settings.default.json のみ。
+# settings.json は初回起動時に default からコピー生成される。
+settings.json
+
+# ボイスカードの config.json も読み上げで last_used_at が書き換わるため
+# git 管理外。配布は config.default.json のみ (無ければ初回ロードで生成)。
+voices/*/config.json
+
+# キャラ⇔ボイス割り当てプリセット (ユーザーが作る実行時データ)。
+# 同梱サンプルは noa 以外のボイスを参照し配布先では動かないため含めない。
+presets/*.json
+
+# トレイアイコンの状態ファイル (walk/run/idle。実行時生成)
+assets/_state.txt
+
+# 開発用の Claude Code スキル等 (配布物には不要)
+.claude/
+
+# daemon の調整値の永続化ファイル (環境依存)
+gap.txt
+firstcut.txt
+nosplit.txt
+pause.txt
+
+# ログ
+*.log
+_daemon_out.log
+_daemon_err.log
+_tray_out.log
+_tray_err.log
+
+# ボイス (著作権懸念のある参照音声・容量大。各自で用意する)
+# voices/ 直下は除外するが、ノアの声(自前生成)だけは含める。
+# 親を voices/* で除外することで、!voices/noa の否定が効くようにする。
+voices/*
+!voices/noa/
+
+# ノアの声の試作WAV (中間生成物)
+_noa_*.wav
+
+# 作業中間ファイル (アイコン生成・検証の一時物)
+_icon_*.png
+_girl1_*.png
+_tray_preview.png
+_vd_test_*.wav
+_app_*.log
+_t310_*.log
+_win_*.log
+
+# バックアップ
+*.bak
+*.bak_*
+CLAUDE.md.bak
+assets/_backup_orig/
+
+# Claude Code のセッション/ロック
+.claude/scheduled_tasks.lock
+
+# PyInstaller のビルド成果物・中間物 (noa_launcher.py から再生成可能)
+# *.exe は基本無視 (旧 NoirTTS.exe 等)。ただし配布用 NoaTTS.exe だけは追跡する
+# (ZIP で入手した人がそのままダブルクリック起動できるようにするため)。
+*.exe
+!NoaTTS.exe
+_pyi_build/
+build/
+dist/
+*.spec
+
+# OS
+Thumbs.db
+desktop.ini
+.DS_Store

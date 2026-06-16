@@ -1,0 +1,11 @@
+{
+  "tts_engine_type": "irodori",
+  "tts_model_size": "1.7B",
+  "tts_device": "cuda:0",
+  "default_language": "Japanese",
+  "llm_provider": "claude",
+  "claude_model": "opus",
+  "ollama_url": "http://localhost:11434",
+  "ollama_model": "qwen3.5:27b",
+  "instruct_template": "【最重要】あなたは{attribute}な性格です。この性格を最も強く反映してください。感情は「{emotion}」。{instruction}"
+}

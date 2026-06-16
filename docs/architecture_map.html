@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NoaTTS コード地図</title>
+<style>
+  :root {
+    --bg:#16121c; --panel:#221b2c; --line:#3a3048; --ink:#ece6f2; --muted:#a99cb8;
+    /* モジュール色 (全ビュー共通) */
+    --c-app:#8d8d99; --c-ui:#e8762c; --c-logic:#9acd32; --c-batch:#4f8de8;
+    --c-engine:#9b6dd8; --c-mascot:#e060a8; --c-text:#2cb5a8; --c-preset:#b8a232;
+    --c-daemon:#d84f5f; --c-tts:#39c0d4; --c-vm:#4caf6e; --c-audio:#6e7ce8; --c-cfg:#c0874f;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Yu Gothic UI","Segoe UI",sans-serif; line-height:1.5; font-size:14px; }
+  header { padding:14px 20px 0; }
+  h1 { font-size:20px; margin:0 0 2px; }
+  h1 .sub { font-size:12px; color:var(--muted); font-weight:normal; margin-left:10px; }
+
+  /* タブ */
+  .tabs { display:flex; gap:6px; margin-top:12px; flex-wrap:wrap; }
+  .tabs button { cursor:pointer; border:1px solid var(--line); border-bottom:none;
+    background:var(--panel); color:var(--muted); padding:8px 16px; font-size:13px;
+    border-radius:8px 8px 0 0; }
+  .tabs button.on { background:#2e2440; color:var(--ink); font-weight:600;
+    border-color:#5a4a78; }
+
+  /* 凡例 */
+  .legend { display:flex; gap:10px; flex-wrap:wrap; padding:8px 20px; font-size:11px;
+    color:var(--muted); border-top:1px solid var(--line); background:#1b1624; }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; }
+
+  main { display:flex; gap:0; align-items:flex-start; }
+  .view { display:none; flex:1; padding:16px 20px 60px; min-width:0; }
+  .view.on { display:block; }
+
+  /* ブロック共通: 左ボーダー色=実装モジュール */
+  .blk { border:1px solid var(--line); border-left:5px solid var(--muted);
+    background:var(--panel); border-radius:8px; padding:8px 10px; margin:8px 0;
+    cursor:pointer; transition:background .12s, border-color .12s; }
+  .blk:hover { background:#2c2338; }
+  .blk.sel { background:#332846; border-color:#7a5fd8; }
+  .blk .t { font-weight:600; font-size:13.5px; }
+  .blk .badge { float:right; font-size:10.5px; padding:1px 8px; border-radius:9px;
+    color:#16121c; font-weight:700; margin-left:6px; }
+  .blk .fn { display:block; font-family:Consolas,monospace; font-size:11px; color:var(--muted); margin-top:2px; }
+  .grp { border:1px dashed #4a3f5e; border-radius:10px; padding:6px 10px 4px; margin:10px 0; }
+  .grp > .gt { font-size:11px; color:var(--muted); letter-spacing:.5px; }
+  .row2 { display:flex; gap:10px; flex-wrap:wrap; }
+  .row2 > .blk, .row2 > .grp { flex:1; min-width:240px; }
+
+  /* モジュール色クラス */
+  .m-app    { border-left-color:var(--c-app); }    .b-app    { background:var(--c-app); }
+  .m-ui     { border-left-color:var(--c-ui); }     .b-ui     { background:var(--c-ui); }
+  .m-logic  { border-left-color:var(--c-logic); }  .b-logic  { background:var(--c-logic); }
+  .m-batch  { border-left-color:var(--c-batch); }  .b-batch  { background:var(--c-batch); }
+  .m-engine { border-left-color:var(--c-engine); } .b-engine { background:var(--c-engine); }
+  .m-mascot { border-left-color:var(--c-mascot); } .b-mascot { background:var(--c-mascot); }
+  .m-text   { border-left-color:var(--c-text); }   .b-text   { background:var(--c-text); }
+  .m-preset { border-left-color:var(--c-preset); } .b-preset { background:var(--c-preset); }
+  .m-daemon { border-left-color:var(--c-daemon); } .b-daemon { background:var(--c-daemon); }
+  .m-tts    { border-left-color:var(--c-tts); }    .b-tts    { background:var(--c-tts); }
+  .m-vm     { border-left-color:var(--c-vm); }     .b-vm     { background:var(--c-vm); }
+  .m-audio  { border-left-color:var(--c-audio); }  .b-audio  { background:var(--c-audio); }
+  .m-cfg    { border-left-color:var(--c-cfg); }    .b-cfg    { background:var(--c-cfg); }
+
+  /* 詳細パネル */
+  aside { width:340px; flex-shrink:0; position:sticky; top:0; padding:16px 20px 16px 0; }
+  #detail { border:1px solid var(--line); border-radius:10px; background:#1d1727;
+    padding:14px 16px; min-height:180px; }
+  #detail h3 { margin:0 0 6px; font-size:15px; }
+  #detail .file { font-family:Consolas,monospace; font-size:12px; color:#ffd479; }
+  #detail .fn2 { font-family:Consolas,monospace; font-size:12px; color:#8fd0ff; display:block; margin:4px 0 8px; }
+  #detail p { font-size:12.5px; color:var(--ink); margin:6px 0; }
+  #detail .wire { font-size:11.5px; color:var(--muted); border-top:1px solid var(--line);
+    padding-top:8px; margin-top:8px; }
+  #detail .hint { color:var(--muted); font-size:12px; }
+
+  /* 全体構成ビュー */
+  .cols { display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap; }
+  .col { flex:1; min-width:230px; }
+  .col h2 { font-size:13px; color:var(--muted); border-bottom:1px solid var(--line); padding-bottom:4px; }
+  .arrow { text-align:center; color:#6a5a88; font-size:16px; margin:-2px 0; }
+  @media (max-width: 1100px) { aside { display:none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>NoaTTS コード地図<span class="sub">画面ブロック ⇔ 実装コードの対応マップ (クリックで詳細)</span></h1>
+  <nav class="tabs">
+    <button data-v="overview" class="on">全体構成</button>
+    <button data-v="tab1">ボイス作成</button>
+    <button data-v="tab2">セリフ一括生成</button>
+    <button data-v="tab3">設定</button>
+    <button data-v="daemon">読み上げデーモン (:7870)</button>
+  </nav>
+</header>
+<div class="legend">
+  <span><i style="background:var(--c-app)"></i>app.py</span>
+  <span><i style="background:var(--c-ui)"></i>ui_voice_create.py</span>
+  <span><i style="background:var(--c-logic)"></i>voice_creation.py</span>
+  <span><i style="background:var(--c-batch)"></i>batch/ (パッケージ)</span>
+  <span><i style="background:var(--c-engine)"></i>engine_control.py</span>
+  <span><i style="background:var(--c-mascot)"></i>mascot.py</span>
+  <span><i style="background:var(--c-text)"></i>text_utils.py</span>
+  <span><i style="background:var(--c-preset)"></i>preset_manager.py</span>
+  <span><i style="background:var(--c-daemon)"></i>noa_tts_daemon.py</span>
+  <span><i style="background:var(--c-tts)"></i>tts_engine / irodori_engine</span>
+  <span><i style="background:var(--c-vm)"></i>voice_manager.py</span>
+  <span><i style="background:var(--c-audio)"></i>audio_utils.py</span>
+  <span><i style="background:var(--c-cfg)"></i>config.py</span>
+</div>
+
+<main>
+<!-- ════════ 全体構成 ════════ -->
+<section class="view on" id="v-overview">
+  <div class="cols">
+    <div class="col">
+      <h2>Voice Studio プロセス (Gradio :7860)</h2>
+      <div class="blk m-app" data-d='["app.py (496行)","build_ui() / save_settings() / _engine_label() / _poll_all","UIの骨格。3タブの枠とヘッダ(モデル状態・進捗)、設定タブ、1秒ポーリング表示。Tab1の中身は ui_voice_create の5ビルダーを呼ぶだけ。","import → ui_voice_create / batch / engine_control / mascot / preset_manager"]'>
+        <span class="badge b-app">app.py</span><span class="t">UI骨格 (build_ui)</span>
+        <span class="fn">3タブの枠・ヘッダ・設定タブ・起動(__main__)</span>
+      </div>
+      <div class="arrow">▼ 呼び出し</div>
+      <div class="row2">
+        <div class="blk m-ui" data-d='["ui_voice_create/ パッケージ (custom_tab/design_tab/clone_tab/tuning_panel/tuning_logic)","build_custom_tab / build_design_tab / build_clone_tab / build_tuning_panel","ボイス作成タブのUI部品とその場の配線。1ブロック=1関数。外に見せる部品は vc_ref_text / tune_temp / tune_extract_btn の3つだけ。旧ボイス一覧は調整パネルに統合。","→ voice_creation (ロジック) / engine_control (vm,cfg,engine)"]'>
+          <span class="badge b-ui">ui_voice_create/</span><span class="t">ボイス作成タブUI</span>
+          <span class="fn">5ビルダー関数</span>
+        </div>
+        <div class="blk m-batch" data-d='["batch/ パッケージ (state/checks/script_io/generation/results)","run_batch_generation / load_script_file / check_row / regenerate_row / export_* / generate_ng_report","セリフ一括生成ドメイン一式。生成キャッシュ(generated_audio等)もここのモジュール状態。","→ engine_control / text_utils / audio_utils"]'>
+          <span class="badge b-batch">batch</span><span class="t">一括生成ドメイン</span>
+          <span class="fn">台本読込→生成→チェック→出力</span>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="blk m-logic" data-d='["voice_creation.py (366行)","gen_custom_voice / gen_voice_design / gen_voice_clone / remove_bgm / save_voice_action / test_saved_voice ほか","ボイス作成のロジック(UI非依存)。サンプル生成・BGM除去(Demucs)・カード保存/削除/試聴・アイコン。","→ engine_control / voice_manager / audio_utils"]'>
+          <span class="badge b-logic">voice_creation</span><span class="t">ボイス作成ロジック</span>
+          <span class="fn">12関数</span>
+        </div>
+        <div class="blk m-mascot" data-d='["mascot.py (622行)","_NOA_SCRIPTS / _mascot_head_html() / _mascot_js() / _APP_CSS","マスコット「ノア」の表示専用コード。表情/口パク画像をbase64で埋め込み、吹き出し会話・チュートリアルをJSで注入。ロジックなし。","app.py の build_ui と app.load(js=) から使われる"]'>
+          <span class="badge b-mascot">mascot</span><span class="t">マスコット表示</span>
+          <span class="fn">HTML/CSS/JS生成</span>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="blk m-text" data-d='["text_utils.py (45行)","normalize_tts_text / reload_reading_dict","台本→TTS入力の正規化。（）独白除去・波ダッシュ→長音・装飾記号→読点・reading_dict.json の読み置換。","batch.py から使用。daemonのclean_textとは別物(役割が違う)"]'>
+          <span class="badge b-text">text_utils</span><span class="t">テキスト正規化</span>
+        </div>
+        <div class="blk m-preset" data-d='["preset_manager.py (37行)","save_preset / load_preset / list_presets","キャラ⇔ボイス割り当てを presets/<名前>.json に保存/読込。","Tab2のプリセットUI(app.py配線)から使用"]'>
+          <span class="badge b-preset">preset_manager</span><span class="t">プリセット</span>
+        </div>
+      </div>
+      <div class="arrow">▼ 共有層</div>
+      <div class="blk m-engine" data-d='["engine_control.py (186行)","cfg / vm / engine / get_engine() / start_preload() / unload_engine_action() / ActivityMonitor(monitor) / mark_generating()","アプリ全体の共有状態。エンジンのライフサイクル(ロード/プリロード/退避)と全タブ共通の進捗モニター。⚠ engine と preload_status は実行時に再代入されるため from-import 禁止 (ec.engine で参照)。","app.py / ui_voice_create / voice_creation / batch の全部がここに依存"]'>
+        <span class="badge b-engine">engine_control</span><span class="t">エンジン管理+共有状態 (cfg / vm / engine / monitor)</span>
+        <span class="fn">get_engine() / preload / unload / ActivityMonitor</span>
+      </div>
+    </div>
+
+    <div class="col">
+      <h2>共通ライブラリ層</h2>
+      <div class="row2">
+        <div class="blk m-tts" data-d='["tts_engine.py (247行) / irodori_engine.py (270行)","generate_for_script_row / generate_voice_clone / generate_voice_design / build_instruct / unload","2つのTTSエンジン。同一インターフェース(ダックタイピング)で、settings.json の tts_engine_type で切替。Irodoriは latent(.pt)キャッシュ、Qwen3は pickle(.pkl)キャッシュ。build_instruct の書式もエンジン毎に違う(type(eng)経由で呼ぶ)。","engine_control.get_engine() が生成。daemonはIrodori直結"]'>
+          <span class="badge b-tts">engines</span><span class="t">TTSエンジン×2 (Qwen3 / Irodori)</span>
+          <span class="fn">同一IF・切替式</span>
+        </div>
+        <div class="blk m-vm" data-d='["voice_manager.py (117行)","VoiceConfig / VoiceManager (save_voice / load_voice / list_voices / delete_voice)","ボイスカード(voices/<名>/config.json)の読み書き。絶対パスはロード時にフォルダ基準で解決し直す。","UI側もdaemon側も同じ voices/ を読む(資産共有の要)"]'>
+          <span class="badge b-vm">voice_manager</span><span class="t">ボイスカード管理</span>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="blk m-audio" data-d='["audio_utils.py (243行)","trim_silence / trim_interior_pauses / adjust_speed / check_voice_gender / check_speech_content / voicevox_notify","音声後処理(無音除去・ポーズ詰め・話速)と品質チェック(F0性別推定・Whisper large-v3 によるセリフ照合)。","UI側・daemon側の両方から使用"]'>
+          <span class="badge b-audio">audio_utils</span><span class="t">音声処理・チェック</span>
+        </div>
+        <div class="blk m-cfg" data-d='["config.py (38行)","AppConfig (load / save)","settings.json の読み書き。tts_engine_type / tts_device / 各ディレクトリ等。","engine_control が cfg として保持。daemonは読まない(Irodori固定)"]'>
+          <span class="badge b-cfg">config</span><span class="t">設定 (settings.json)</span>
+        </div>
+      </div>
+
+      <h2 style="margin-top:22px">読み上げデーモンプロセス (:7870)</h2>
+      <div class="blk m-daemon" data-d='["noa_tts_daemon.py (起動口) + daemon/ パッケージ (runtime/textproc/tuning/player/worker/servers/panel_html/main)","TTSWorker / pipe_server / file_watcher / http_server / StreamPlayer / clean_text","UIとは別プロセス。Irodoriモデルを VRAM 常駐させ、HTTP/ファイル監視/named pipe の3経路で受けたテキストを即読み上げ。詳細は「読み上げデーモン」タブ。","→ irodori_engine / voice_manager / audio_utils (UIプロセスとは資産のみ共有)"]'>
+        <span class="badge b-daemon">noa_tts_daemon</span><span class="t">常駐読み上げデーモン</span>
+        <span class="fn">3経路受信 → 即時再生 (詳細は専用タブ)</span>
+      </div>
+
+      <h2 style="margin-top:22px">ランチャー類</h2>
+      <div class="row2">
+        <div class="blk m-app" data-d='["tray.py (339行)","main / animate / build_menu / switch_voice","タスクトレイ常駐。Gradio起動・マスコットアイコンアニメ(walk/run/idle)・ボイス切替メニュー・読み上げ設定ウィンドウ起動。","_active_voice.txt / assets/_state.txt 経由でdaemon/UIと連携"]'>
+          <span class="badge b-app">tray.py</span><span class="t">トレイ常駐</span>
+        </div>
+        <div class="blk m-app" data-d='["tts_api_window.py (380行) / webview_window.py / noa_launcher.py","Api クラス / main","読み上げ設定の独立ウィンドウ(pywebview, daemonのHTTP APIを叩く)、Voice Studio用ウィンドウ、exe化用ランチャー。","daemonとはHTTP(:7870)のみで通信"]'>
+          <span class="badge b-app">windows</span><span class="t">設定ウィンドウ / ランチャー</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ Tab1 ボイス作成 ════════ -->
+<section class="view" id="v-tab1">
+  <div class="grp"><span class="gt">ヘッダ (全タブ共通)</span>
+    <div class="row2">
+      <div class="blk m-mascot" data-d='["mascot.py","_mascot_head_html() + _mascot_js()","右上のノア(表情差分+口パク+吹き出し)。使い方/ヘルプ/応援の会話シナリオは _NOA_SCRIPTS。gr.HTML と app.load(js=) で注入。","表示ON/OFFは設定タブのチェック+localStorage"]'>
+        <span class="badge b-mascot">mascot</span><span class="t">マスコット「ノア」</span>
+      </div>
+      <div class="blk m-engine" data-d='["engine_control.py → app.py","preload_status / monitor.render() (表示は app.py の _poll_all が1秒毎に取得)","「モデル状態」「進捗モニター」欄。プリロード進捗と全タブ共通の処理ログを表示。","gr.Timer(1秒) → _poll_all → ec.preload_status / monitor.render()"]'>
+        <span class="badge b-engine">engine_control</span><span class="t">モデル状態 / 進捗モニター</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grp"><span class="gt">サブタブ (gr.Tabs)</span>
+    <div class="blk m-ui" data-d='["ui_voice_create.py","build_custom_tab()","A. カスタムボイス[Qwen3専用]。内蔵スピーカー×言語×指示でサンプル生成→保存。","ロジック: voice_creation.gen_custom_voice / save_voice_action"]'>
+      <span class="badge b-ui">ui_voice_create</span><span class="t">A. カスタムボイス</span>
+      <span class="fn">build_custom_tab() → gen_custom_voice / save_voice_action</span>
+    </div>
+    <div class="blk m-ui" data-d='["ui_voice_create.py","build_design_tab()","B. ボイスデザイン[Qwen3推奨]。声の説明文からサンプル生成(シード付き)→キャラカード保存。","ロジック: voice_creation.gen_voice_design / save_voice_action"]'>
+      <span class="badge b-ui">ui_voice_create</span><span class="t">B. ボイスデザイン</span>
+      <span class="fn">build_design_tab() → gen_voice_design / save_voice_action</span>
+    </div>
+    <div class="blk m-ui" data-d='["ui_voice_create.py","build_clone_tab() → return vc_ref_text","C. ボイスクローン[両エンジン対応]。参照音声+書き起こしでクローン生成。BGM除去(Demucs)付き。ref_text欄はIrodoriでは非表示(エンジン切替で変わるため設定タブに部品を返している)。","ロジック: voice_creation.gen_voice_clone / remove_bgm / save_voice_action"]'>
+      <span class="badge b-ui">ui_voice_create</span><span class="t">C. ボイスクローン</span>
+      <span class="fn">build_clone_tab() → gen_voice_clone / remove_bgm ｜ 返却: vc_ref_text</span>
+    </div>
+    <div class="blk m-ui" data-d='["ui_voice_create.py","build_tuning_panel() → return (tune_temp, tune_extract_btn)","保存済みボイス調整(旧433行の最大ブロック)。seed/話速/Temperature/promptキャッシュを調整して試聴・5シード探索・喜怒哀楽4種など。試聴系5関数は clone_prompt の .pt/.pkl 両対応。","vm/get_engine/monitor を直接使用 (engine_control)"]'>
+      <span class="badge b-ui">ui_voice_create</span><span class="t">保存済みボイス調整 (最大ブロック)</span>
+      <span class="fn">build_tuning_panel() ｜ 返却: tune_temp, tune_extract_btn</span>
+    </div>
+  </div>
+
+  <div class="blk m-ui" data-d='["ui_voice_create/tuning_panel.py","build_tuning_panel() に統合","旧「保存済みボイス一覧」(試聴/サンプル/アイコン/削除)は保存済みボイス調整に統合。ドロップダウンは全ボイス対象、指示/感情欄・保存時サンプル・トレイアイコン設定・削除を含む。","ロジック: tuning_logic._tune_test / voice_creation.test_saved_voice / preview_voice / set_voice_icon_action / delete_voice_action"]'>
+    <span class="badge b-ui">ui_voice_create</span><span class="t">(統合済) 一覧機能は保存済みボイス調整へ</span>
+    <span class="fn">build_tuning_panel() に集約</span>
+  </div>
+</section>
+
+<!-- ════════ Tab2 セリフ一括生成 ════════ -->
+<section class="view" id="v-tab2">
+  <div class="blk m-batch" data-d='["batch.py (UI配線は app.py)","load_script_file()","① ファイル読み込み。CSV/Excelを読み、列名自動マッピング・結合セル補完・既存WAVチェック。テンプレート作成も。","読み込んだパスは batch._loaded_file_path に保持(上書き保存用)"]'>
+    <span class="badge b-batch">batch</span><span class="t">① ファイル読み込み</span><span class="fn">load_script_file()</span>
+  </div>
+  <div class="blk m-batch" data-d='["batch.py","SCRIPT_COLUMNS (テーブル列定義)","② セリフテーブル。ID/キャラ/ファイル名/セリフ/セリフ仮名/感情/プロンプト/おすすめ の8列。編集可。","gr.Dataframe(app.py配線) ⇔ gr.State(script_df)"]'>
+    <span class="badge b-batch">batch</span><span class="t">② セリフテーブル</span><span class="fn">SCRIPT_COLUMNS</span>
+  </div>
+  <div class="row2">
+    <div class="blk m-batch" data-d='["batch.py","assign_voice_to_char()","③ キャラ⇔ボイス紐付け。キャラ名に保存済みボイスを割り当て(char_voice_map)。","gr.State(char_voice_map) を更新"]'>
+      <span class="badge b-batch">batch</span><span class="t">③ キャラ⇔ボイス紐付け</span><span class="fn">assign_voice_to_char()</span>
+    </div>
+    <div class="blk m-preset" data-d='["preset_manager.py","save_preset / load_preset / list_presets","プリセット。割り当てを presets/<名>.json へ保存/読込。","呼び出し時に settings.json から presets_dir を解決"]'>
+      <span class="badge b-preset">preset_manager</span><span class="t">プリセット保存/読込</span>
+    </div>
+  </div>
+  <div class="blk m-batch" data-d='["batch.py","run_batch_generation() (294行・心臓部) / stop_batch()","④ 一括生成。行ごとに ボイス読込→instruct組立(type(eng).build_instruct)→生成→無音除去/ポーズ詰め/話速→(任意)Whisperチェック→リトライ(プロンプト段階短縮)。クローンは.pt/.pklキャッシュ+seed固定で安定化。生成キャッシュは batch.generated_audio 等。","→ engine_control.get_engine / text_utils.normalize_tts_text / audio_utils一式。モデル退避ボタンは engine_control.unload_engine_action"]'>
+    <span class="badge b-batch">batch</span><span class="t">④ 一括生成 (心臓部)</span>
+    <span class="fn">run_batch_generation() / stop_batch() ｜ 退避: engine_control.unload_engine_action()</span>
+  </div>
+  <div class="blk m-batch" data-d='["batch.py","on_result_row_select / regenerate_row / check_row / generate_ng_report / RESULT_COLUMNS","⑤ 生成結果テーブル。行クリック→再生、この行を再生成、この行をチェック(F0+Whisper照合)、NGレポート。チェック結果は voice_check_cache / speech_check_cache。","row選択は gr.State(selected_row_idx) 経由"]'>
+    <span class="badge b-batch">batch</span><span class="t">⑤ 生成結果 (再生/再生成/チェック/NGレポート)</span>
+    <span class="fn">on_result_row_select / regenerate_row / check_row / generate_ng_report</span>
+  </div>
+  <div class="blk m-batch" data-d='["batch.py","export_all / save_result_table / export_ng_excel / save_script_table","⑥ エクスポート。全WAV出力・結果Excel・NG行Excel・セリフテーブルの元ファイル上書き保存。","出力先: output/ (cfg.output_dir)"]'>
+    <span class="badge b-batch">batch</span><span class="t">⑥ エクスポート</span>
+    <span class="fn">export_all / save_result_table / export_ng_excel</span>
+  </div>
+</section>
+
+<!-- ════════ Tab3 設定 ════════ -->
+<section class="view" id="v-tab3">
+  <div class="blk m-mascot" data-d='["app.py (UI) + mascot.py (JS)","set_noa_visible チェックボックス","マスコット(ノア)の表示/非表示。状態は localStorage に保存され、mascot.js が参照。","「消す」遊びで消したノアの復活もここ"]'>
+    <span class="badge b-mascot">mascot</span><span class="t">マスコット表示 ON/OFF</span>
+  </div>
+  <div class="blk m-app" data-d='["app.py","save_settings() → engine_control.cfg.save() / _refresh_engine_dependent()","TTS設定。エンジン(qwen3/irodori)・モデルサイズ・言語・instructテンプレート。保存するとエンジン差し替え(ec.engine=None→次回生成で再ロード)し、エンジン依存UIを一括更新。","越境配線: vc_ref_text(クローン欄) / tune_temp / tune_extract_btn(調整パネル) ← ui_voice_create のビルダー返却値"]'>
+    <span class="badge b-app">app.py</span><span class="t">TTS設定 (エンジン切替)</span>
+    <span class="fn">save_settings() → _refresh_engine_dependent() が他タブ3部品を更新</span>
+  </div>
+  <div class="blk m-engine" data-d='["engine_control.py","unload_engine_action() (UIのlambdaは ec.engine を確認して呼ぶ)","モデル管理。全モデルをアンロードしてVRAM解放。次回生成時に自動再ロード。","トレイの「モデル退避」と同じ仕組み"]'>
+    <span class="badge b-engine">engine_control</span><span class="t">モデル管理 (VRAM解放)</span>
+  </div>
+</section>
+
+<!-- ════════ デーモン ════════ -->
+<section class="view" id="v-daemon">
+  <div class="grp"><span class="gt">入口 (3経路) — すべて clean_text で整形してから読む</span>
+    <div class="row2">
+      <div class="blk m-daemon" data-d='["daemon/servers.py","http_server() (ThreadingHTTPServer :7870)","HTTP API。POST /say /stop /voice /speed /gap /nosplit /firstcut /pause /toggle /quit、GET /health /voices、GET / はブラウザ操作パネル。トグル無視で常に読む。","Claude等の外部ツールはここに投げる"]'>
+        <span class="badge b-daemon">daemon</span><span class="t">HTTP API (:7870)</span><span class="fn">http_server()</span>
+      </div>
+      <div class="blk m-daemon" data-d='["daemon/servers.py","file_watcher() (0.4秒ポーリング)","_tts_say.txt の変更監視。tts_auto.flag が存在する間だけ読む(トグル式)。","外部スクリプトが「ファイルに書くだけ」で読み上げ"]'>
+        <span class="badge b-daemon">daemon</span><span class="t">ファイル監視</span><span class="fn">file_watcher()</span>
+      </div>
+      <div class="blk m-daemon" data-d='["daemon/servers.py","pipe_server() (\\\\.\\pipe\\noa_tts)","Windows named pipe。UTF-8テキストを書くだけ(応答なし)。##QUIT##で終了。","トグル無視で常に読む"]'>
+        <span class="badge b-daemon">daemon</span><span class="t">named pipe</span><span class="fn">pipe_server()</span>
+      </div>
+    </div>
+  </div>
+  <div class="arrow">▼ dispatch_speak() — 前の読み上げをキャンセルして差し替え</div>
+  <div class="blk m-daemon" data-d='["daemon/textproc.py + daemon/tuning.py","clean_text() → _split_sentences()","テキスト整形(絵文字/MD/コードブロック除去)→文分割。nosplit字数以下は分割しない(テンポ優先)、長文は firstcut で1文目を早切りして喋り出しを速くする。","調整値は gap.txt/nosplit.txt/firstcut.txt/pause.txt に永続化(HTTP経由で実行時変更可)"]'>
+    <span class="badge b-daemon">daemon</span><span class="t">テキスト整形 → 文分割</span>
+    <span class="fn">clean_text() / _split_sentences() (nosplit/firstcut)</span>
+  </div>
+  <div class="blk m-daemon" data-d='["daemon/worker.py + daemon/player.py","TTSWorker.speak() — producer(生成スレッド) + StreamPlayer(再生)","文ごとに生成しながら、出来た順に連続ストリーム再生。デバイスを開きっぱなしにするので文間の継ぎ目ノイズなし。文間は gap 秒の無音。キャンセルは50ms粒度で即時。","生成: TTSWorker._generate_one → irodori_engine。後処理: trim_silence/ポーズ詰め/話速(audio_utils)"]'>
+    <span class="badge b-daemon">daemon</span><span class="t">生成+ストリーム再生 (並行パイプライン)</span>
+    <span class="fn">TTSWorker.speak() / StreamPlayer</span>
+  </div>
+  <div class="row2">
+    <div class="blk m-tts" data-d='["irodori_engine.py","IrodoriEngine (daemonは直接生成・cuda:0固定)","モデルをVRAM常駐。クローンは latentキャッシュ(.pt)を ref_latent として渡し、毎回のエンコードを省略して高速化。","daemonは settings.json を読まず Irodori 固定"]'>
+      <span class="badge b-tts">irodori_engine</span><span class="t">TTS生成 (VRAM常駐)</span>
+    </div>
+    <div class="blk m-vm" data-d='["voice_manager.py","VoiceManager.load_voice() (TTSWorker._load_voice_card)","ボイスカード読込。HTTP /voice で実行中に切替可能。現在ボイスは _active_voice.txt に書き出し(トレイがアイコン切替に使う)。","UIで作ったボイスがそのまま使える(voices/共有)"]'>
+      <span class="badge b-vm">voice_manager</span><span class="t">ボイス読込/切替</span>
+    </div>
+  </div>
+</section>
+
+<aside>
+  <div id="detail">
+    <h3>詳細</h3>
+    <p class="hint">左の地図のブロックをクリックすると、対応するファイル・関数・役割・つながりがここに出ます。</p>
+  </div>
+</aside>
+</main>
+
+<script>
+// タブ切替
+const tabs = document.querySelectorAll(".tabs button");
+const views = { overview:"v-overview", tab1:"v-tab1", tab2:"v-tab2", tab3:"v-tab3", daemon:"v-daemon" };
+tabs.forEach(b => b.addEventListener("click", () => {
+  tabs.forEach(x => x.classList.remove("on"));
+  b.classList.add("on");
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("on"));
+  document.getElementById(views[b.dataset.v]).classList.add("on");
+}));
+
+// ブロッククリック → 詳細パネル
+const detail = document.getElementById("detail");
+document.querySelectorAll(".blk").forEach(blk => {
+  blk.addEventListener("click", (e) => {
+    e.stopPropagation();
+    document.querySelectorAll(".blk.sel").forEach(x => x.classList.remove("sel"));
+    blk.classList.add("sel");
+    let d;
+    try { d = JSON.parse(blk.dataset.d); } catch { return; }
+    const title = blk.querySelector(".t") ? blk.querySelector(".t").textContent : "";
+    detail.innerHTML =
+      "<h3>" + title + "</h3>" +
+      '<span class="file">📄 ' + d[0] + "</span>" +
+      '<span class="fn2">' + d[1] + "</span>" +
+      "<p>" + d[2] + "</p>" +
+      (d[3] ? '<div class="wire">🔗 ' + d[3] + "</div>" : "");
+  });
+});
+</script>
+</body>
+</html>

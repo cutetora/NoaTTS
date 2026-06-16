@@ -1,0 +1,18 @@
+{
+  "name": "noa",
+  "voice_type": "clone",
+  "language": "Japanese",
+  "attribute": "",
+  "speaker": "",
+  "voice_description": "",
+  "seed": 777,
+  "ref_audio_path": "ref_audio.wav",
+  "ref_text": "やっほー！ わたしノア、NoaTTSの読み上げサポート担当ですよー",
+  "clone_temperature": 0.3,
+  "clone_prompt_path": "clone_prompt.pt",
+  "default_caption": "",
+  "speed": 1.0,
+  "max_pause_sec": 0.0,
+  "sample_audio_path": "sample.wav",
+  "last_used_at": ""
+}

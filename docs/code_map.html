@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>NoaTTS コード地図 (実画面)</title>
+<style>
+  body { margin:0; background:#16121c; color:#ece6f2;
+    font-family:"Yu Gothic UI","Segoe UI",sans-serif; font-size:14px; }
+  header { padding:12px 20px 0; position:sticky; top:0; background:#16121cee; z-index:50;
+    border-bottom:1px solid #3a3048; backdrop-filter:blur(4px); }
+  h1 { font-size:18px; margin:0; }
+  h1 .sub { font-size:11.5px; color:#a99cb8; font-weight:normal; margin-left:10px; }
+  .tabs { display:flex; gap:6px; margin-top:10px; }
+  .tabs button { cursor:pointer; border:1px solid #3a3048; border-bottom:none; background:#221b2c;
+    color:#a99cb8; padding:7px 16px; font-size:13px; border-radius:8px 8px 0 0; }
+  .tabs button.on { background:#2e2440; color:#ece6f2; font-weight:600; border-color:#5a4a78; }
+  main { display:flex; align-items:flex-start; }
+  .view { display:none; flex:1; padding:14px 16px 80px; min-width:0; }
+  .view.on { display:block; }
+  .wrap { position:relative; max-width:1500px; }
+  .wrap img { width:100%; display:block; border-radius:8px; opacity:.92; }
+  .ov { position:absolute; left:0; width:100%; border:2px solid var(--bc);
+    border-radius:6px; cursor:pointer; transition:background .12s; }
+  .ov:hover, .ov.sel { background:color-mix(in srgb, var(--bc) 16%, transparent); }
+  .ov.sel { border-width:3px; }
+  .ov .tag { position:absolute; top:4px; left:6px; font-size:11.5px; font-weight:700;
+    color:#16121c; padding:2px 9px; border-radius:10px; white-space:nowrap; max-width:92%;
+    overflow:hidden; text-overflow:ellipsis; }
+  .ov .tag code { font-family:Consolas,monospace; font-weight:400; font-size:10.5px;
+    background:#16121c22; padding:0 5px; border-radius:6px; }
+  aside { width:330px; flex-shrink:0; position:sticky; top:84px; padding:14px 16px 14px 0; }
+  #detail { border:1px solid #3a3048; border-radius:10px; background:#1d1727; padding:13px 15px; min-height:150px; }
+  #detail h3 { margin:0 0 6px; font-size:14.5px; }
+  #detail .file { font-family:Consolas,monospace; font-size:12px; color:#ffd479; }
+  #detail .fn2 { font-family:Consolas,monospace; font-size:11.5px; color:#8fd0ff; display:block; margin:4px 0 8px; }
+  #detail p { font-size:12.5px; margin:6px 0; }
+  #detail .hint { color:#a99cb8; font-size:12px; }
+  .foot { padding:0 20px 30px; font-size:12px; color:#a99cb8; }
+  .foot a { color:#b497e8; }
+  @media (max-width:1150px) { aside { display:none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>NoaTTS コード地図<span class="sub">実画面の各ブロック ⇔ 実装コード (枠をクリックで詳細)</span></h1>
+  <nav class="tabs"><button data-v="tab1" class="on">ボイス作成</button>
+    <button data-v="tab2" class="">セリフ一括生成</button>
+    <button data-v="tab3" class="">設定</button></nav>
+</header>
+<main>
+<section class="view on" id="v-tab1"><div class="wrap"><img src="map_tab1.png" alt="ボイス作成"><div class="ov" style="top:0.000%;height:9.847%;--bc:#9b6dd8" data-d='["app.py + engine_control.py", "build_ui() 冒頭 / _poll_all() / ec.preload_status / monitor.render()", "1秒タイマーで engine_control の preload_status と ActivityMonitor のログを表示。エンジン名表示は _engine_label()。"]' data-t="共通ヘッダ (タイトル/エンジン表示/モデル状態/進捗モニター)"><span class="tag" style="background:#9b6dd8">共通ヘッダ (タイトル/エンジン表示/モデル状態/進捗モニター) <code>app.py + engine_control.py</code></span></div><div class="ov" style="top:9.847%;height:1.339%;--bc:#8d8d99" data-d='["app.py", "build_ui() の gr.Tab×3", "3タブの枠だけ。中身は各モジュールのビルダーを呼ぶ。"]' data-t="メインタブバー"><span class="tag" style="background:#8d8d99">メインタブバー <code>app.py</code></span></div><div class="ov" style="top:11.185%;height:23.515%;--bc:#e8762c" data-d='["ui_voice_create/ (custom_tab/design_tab/clone_tab) → voice_creation.py", "build_custom_tab() ｜ B=build_design_tab() / C=build_clone_tab()", "サンプル生成ボタン→ gen_custom_voice()、保存→ save_voice_action()。BタブとCタブも同じ構造で、Cは remove_bgm(Demucs) 付き。Cの ref_text 欄はエンジン切替で表示が変わるため設定タブに部品を返している。"]' data-t="サブタブ A/B/C (表示中: A. カスタムボイス)"><span class="tag" style="background:#e8762c">サブタブ A/B/C (表示中: A. カスタムボイス) <code>ui_voice_create/ → voice_creation.py</code></span></div><div class="ov" style="top:34.700%;height:31.827%;--bc:#e8762c" data-d='["ui_voice_create/tuning_panel.py + tuning_logic.py", "build_tuning_panel() + UI非依存ハンドラ群", "seed/話速/Temperature/promptキャッシュの調整と試聴・5シード探索・喜怒哀楽4種。試聴系5関数は vm/get_engine を直接使い、clone_promptは .pt/.pkl 両対応。"]' data-t="保存済みボイス調整 (一覧機能も統合)"><span class="tag" style="background:#e8762c">保存済みボイス調整 (一覧も統合) <code>ui_voice_create/tuning_panel.py</code></span></div><div class="ov" style="top:66.527%;height:33.473%;--bc:#e8762c" data-d='["ui_voice_create/tuning_panel.py (調整パネルに統合) → voice_creation.py", "build_tuning_panel() に集約", "旧・保存済みボイス一覧。試聴/保存時サンプル/トレイアイコン設定/削除は保存済みボイス調整に統合された。"]' data-t="(統合済) 一覧機能は保存済みボイス調整へ"><span class="tag" style="background:#e8762c">(統合済) 一覧→調整パネル <code>ui_voice_create/tuning_panel.py</code></span></div><div class="ov box" style="top:1.785%;height:6.360%;left:67.867%;width:31.333%;--bc:#e060a8" data-d='["mascot.py", "_mascot_head_html() / _mascot_js()", "右上固定のノア。表情差分+口パク+吹き出し会話(_NOA_SCRIPTS)。表示ON/OFFは設定タブ。"]' data-t="マスコット「ノア」"><span class="tag" style="background:#e060a8">マスコット <code>mascot.py</code></span></div></div></section>
+<section class="view" id="v-tab2"><div class="wrap"><img src="map_tab2.png" alt="セリフ一括生成"><div class="ov" style="top:0.000%;height:10.547%;--bc:#9b6dd8" data-d='["app.py + engine_control.py", "build_ui() 冒頭 / _poll_all() / ec.preload_status / monitor.render()", "1秒タイマーで engine_control の preload_status と ActivityMonitor のログを表示。エンジン名表示は _engine_label()。"]' data-t="共通ヘッダ (タイトル/エンジン表示/モデル状態/進捗モニター)"><span class="tag" style="background:#9b6dd8">共通ヘッダ (タイトル/エンジン表示/モデル状態/進捗モニター) <code>app.py + engine_control.py</code></span></div><div class="ov" style="top:10.547%;height:1.105%;--bc:#8d8d99" data-d='["app.py", "build_ui()", "タブの枠。"]' data-t="メインタブバー"><span class="tag" style="background:#8d8d99">メインタブバー <code>app.py</code></span></div><div class="ov" style="top:11.652%;height:13.176%;--bc:#4f8de8" data-d='["batch/script_io.py", "load_script_file()", "CSV/Excel読込・列名自動マッピング・結合セル補完・既存WAVチェック。テンプレート作成も。"]' data-t="① ファイル読み込み"><span class="tag" style="background:#4f8de8">① ファイル読み込み <code>batch/script_io.py</code></span></div><div class="ov" style="top:24.828%;height:9.262%;--bc:#4f8de8" data-d='["batch/state.py", "SCRIPT_COLUMNS (8列定義)", "編集可能テーブル。gr.State(script_df) と同期。セリフ仮名は読みの手動指定用。"]' data-t="② セリフテーブル"><span class="tag" style="background:#4f8de8">② セリフテーブル <code>batch/state.py</code></span></div><div class="ov" style="top:34.090%;height:11.413%;--bc:#4f8de8" data-d='["batch/generation.py", "assign_voice_to_char()", "キャラ名→保存済みボイスの割り当て。char_voice_map(gr.State)を更新。"]' data-t="③ キャラ⇔ボイス紐付け"><span class="tag" style="background:#4f8de8">③ キャラ⇔ボイス紐付け <code>batch/generation.py</code></span></div><div class="ov" style="top:45.503%;height:12.369%;--bc:#b8a232" data-d='["preset_manager.py", "save_preset() / load_preset() / list_presets()", "割り当てを presets/<名>.json に永続化。"]' data-t="プリセット保存/読込"><span class="tag" style="background:#b8a232">プリセット保存/読込 <code>preset_manager.py</code></span></div><div class="ov" style="top:57.873%;height:15.955%;--bc:#4f8de8" data-d='["batch/generation.py", "run_batch_generation() (294行) / stop_batch()", "行ごとに: ボイス読込→instruct組立(type(eng).build_instruct)→生成→無音除去/ポーズ詰め/話速→(任意)Whisperチェック→リトライ。クローンは .pt/.pkl キャッシュ+seed固定。モデル退避は engine_control.unload_engine_action()。"]' data-t="④ 一括生成 (心臓部)"><span class="tag" style="background:#4f8de8">④ 一括生成 (心臓部) <code>batch/generation.py</code></span></div><div class="ov" style="top:73.827%;height:11.981%;--bc:#4f8de8" data-d='["batch/results.py", "on_result_row_select / regenerate_row / check_row / generate_ng_report", "行クリック→キャッシュ(generated_audio)から再生。この行をチェック=F0+Whisper照合。"]' data-t="⑤ 生成結果 (再生/再生成/チェック/NGレポート)"><span class="tag" style="background:#4f8de8">⑤ 生成結果 (再生/再生成/チェック/NGレポート) <code>batch/results.py</code></span></div><div class="ov" style="top:85.808%;height:14.192%;--bc:#4f8de8" data-d='["batch/script_io.py", "export_all / save_result_table / export_ng_excel", "全WAV出力・結果Excel・NG行Excel。出力先は output/。"]' data-t="⑥ エクスポート"><span class="tag" style="background:#4f8de8">⑥ エクスポート <code>batch/script_io.py</code></span></div></div></section>
+<section class="view" id="v-tab3"><div class="wrap"><img src="map_tab3.png" alt="設定"><div class="ov" style="top:0.000%;height:26.052%;--bc:#9b6dd8" data-d='["app.py + engine_control.py", "build_ui() 冒頭 / _poll_all() / ec.preload_status / monitor.render()", "1秒タイマーで engine_control の preload_status と ActivityMonitor のログを表示。エンジン名表示は _engine_label()。"]' data-t="共通ヘッダ (タイトル/エンジン表示/モデル状態/進捗モニター)"><span class="tag" style="background:#9b6dd8">共通ヘッダ (タイトル/エンジン表示/モデル状態/進捗モニター) <code>app.py + engine_control.py</code></span></div><div class="ov" style="top:26.052%;height:2.731%;--bc:#8d8d99" data-d='["app.py", "build_ui()", "タブの枠。"]' data-t="メインタブバー"><span class="tag" style="background:#8d8d99">メインタブバー <code>app.py</code></span></div><div class="ov" style="top:28.782%;height:8.635%;--bc:#e060a8" data-d='["app.py (UI) + mascot.py (JS)", "set_noa_visible チェックボックス", "状態は localStorage。消したノアの復活もここ。"]' data-t="マスコット表示 ON/OFF"><span class="tag" style="background:#e060a8">マスコット表示 ON/OFF <code>app.py (UI) + mascot.py (JS)</code></span></div><div class="ov" style="top:37.417%;height:53.063%;--bc:#8d8d99" data-d='["app.py → engine_control.py", "save_settings() → _refresh_engine_dependent()", "保存で settings.json 更新+エンジン差し替え(ec.engine=None)。さらにボイス作成タブの3部品(vc_ref_text/tune_temp/tune_extract_btn)の表示を越境更新する。"]' data-t="TTS設定 (エンジン切替・言語・テンプレート)"><span class="tag" style="background:#8d8d99">TTS設定 (エンジン切替・言語・テンプレート) <code>app.py → engine_control.py</code></span></div><div class="ov" style="top:90.480%;height:9.520%;--bc:#9b6dd8" data-d='["engine_control.py", "unload_engine_action()", "全モデルをアンロード。次回生成時に自動再ロード。"]' data-t="モデル管理 (VRAM解放)"><span class="tag" style="background:#9b6dd8">モデル管理 (VRAM解放) <code>engine_control.py</code></span></div></div></section>
+<aside><div id="detail"><h3>詳細</h3>
+<p class="hint">画面上の色枠をクリックすると、そのブロックを実装しているファイル・関数・役割がここに出ます。枠の色はモジュール毎に固定です。</p>
+</div></aside>
+</main>
+<div class="foot">モジュール間の依存関係・デーモン(:7870)の内部構造は <a href="architecture_map.html">architecture_map.html (全体構成図)</a> を参照。スクショは生成時点の画面で、UI変更時は作り直しが必要。</div>
+<script>
+const tabs = document.querySelectorAll(".tabs button");
+tabs.forEach(b => b.addEventListener("click", () => {
+  tabs.forEach(x => x.classList.remove("on")); b.classList.add("on");
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("on"));
+  document.getElementById("v-" + b.dataset.v).classList.add("on");
+}));
+const detail = document.getElementById("detail");
+document.querySelectorAll(".ov").forEach(o => o.addEventListener("click", e => {
+  e.stopPropagation();
+  document.querySelectorAll(".ov.sel").forEach(x => x.classList.remove("sel"));
+  o.classList.add("sel");
+  const d = JSON.parse(o.dataset.d);
+  detail.innerHTML = "<h3>" + o.dataset.t + "</h3>" +
+    '<span class="file">📄 ' + d[0] + '</span><span class="fn2">' + d[1] + "</span><p>" + d[2] + "</p>";
+}));
+</script>
+</body>
+</html>

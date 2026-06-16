@@ -1,0 +1,138 @@
+# NoaTTS
+
+ローカルで動く日本語TTS（音声合成）アプリ。モデルをVRAMに常駐させて、テキストを投げると即座に読み上げる。声は「ボイスカード」として保存・切替でき、ボイスクローンにも対応する。
+
+- **2つのTTSエンジン**を切替可能 — [Qwen3-TTS](https://huggingface.co/Qwen) / [Irodori-TTS](https://huggingface.co/Aratako)
+- **VRAM常駐デーモン** — 初回ロード後は待ち時間なしで読み上げ
+- **3つの入力経路** — HTTP API / ファイル監視 / Windows named pipe
+- **タスクトレイ常駐** + Web UI（Gradio）でボイス作成・編集
+
+> Windows 専用（named pipe を使用）。NVIDIA GPU + CUDA を推奨。
+
+---
+
+## 入手
+
+どちらかの方法でプロジェクト一式を手に入れます。
+
+- **ZIP（git が無くてもOK・おすすめ）**: [**最新版をダウンロード**](https://github.com/cutetora/NoaTTS/releases/latest) → ページ下の **Assets** にある `Source code (zip)` を落として、好きな場所に展開する。バージョン管理された安定版です。
+  - （最新の開発版がほしい場合は、緑の「Code」→「Download ZIP」で main の最新を取得することもできます）
+- **git clone（git がある人）**:
+  ```bash
+  git clone https://github.com/cutetora/NoaTTS.git
+  ```
+
+> どちらでも構いません。git が入っていなくても、後述の `setup.bat` が（winget があれば）git を自動で入れるので、最初は ZIP 取得で問題ありません。
+
+---
+
+## セットアップ
+
+> ⚠️ これは「ワンクリックで全部入る」アプリではありません。**Python 3.11 と CUDA 対応 PyTorch を自分で入れる前提**の構成です（PyTorch は環境の CUDA バージョンに依存するため自動化していません）。同梱の `NoaTTS.exe` も Python 環境を呼び出す軽量ランチャーで、依存が無い環境では動きません。
+
+### かんたん: `setup.bat`（CUDA 12.8 / winget 環境向け）
+
+**`setup.bat` をダブルクリック** すると、以下を自動でやります:
+
+1. `git` / `Python 3.11` を winget で導入（無い場合）
+2. `venv`（仮想環境）を作成
+3. CUDA 12.8 版 PyTorch を導入
+4. `requirements.txt` の依存を導入
+5. **TTSモデルを事前ダウンロード**（数GB・数分。ここで落とすので初回起動が速い）
+
+> ⚠️ 自動なのは **winget が使えて、GPU が CUDA 12.8 系** の環境だけです。CUDA バージョンが違う場合は `setup.bat` 内の `TORCH_INDEX` を自分の環境に合わせて書き換えてください（`https://download.pytorch.org/whl/cu121` など）。winget が無い環境では、git / Python を手動で入れてから実行します。
+
+終わったら `run_tray.bat`（または `NoaTTS.exe`）で起動します。`venv` があれば各 bat / exe は自動でそれを使います。モデルは setup 時に取得済みなので、起動後すぐ使えます。
+
+### 手動セットアップ
+
+Python 3.11 を推奨。**先に PyTorch を入れてから** 依存をインストールします。
+
+1. **Python 3.11** を導入（`py -3.11` で呼べる状態にする）。
+2. **CUDA 対応の PyTorch** を導入（環境の CUDA バージョンに合わせる）。
+   <https://pytorch.org/get-started/locally/> から `torch` と `torchaudio` を入れる
+   （動作確認: torch 2.11.0+cu128 / CUDA 12.8）。
+3. 残りの依存をインストール（TTS エンジンを GitHub から取得するため **git が必要**）。
+
+```bash
+pip install -r requirements.txt
+```
+
+4. （任意）モデルを事前ダウンロードしておくと初回起動が速くなります。省略した場合は初回起動時に自動取得されます。
+
+```bash
+python download_models.py
+```
+
+---
+
+## 起動方法
+
+目的に応じて4通り。普段使いは **`NoaTTS.exe` をダブルクリック** が一番ラク。
+
+| やりたいこと | 起動方法 | 説明 |
+|---|---|---|
+| 普段使い（おすすめ） | **`NoaTTS.exe` をダブルクリック** | アイコン付きで黒窓を出さずにトレイ常駐を起動するランチャー（中身は `run_tray.bat` と同じくトレイ起動） |
+| トレイ常駐（bat 版） | `run_tray.bat` | トレイアイコン + Web UI + デーモン管理をまとめて |
+| 読み上げだけ使う | `python noa_tts_daemon.py` | デーモン単体。HTTP API(:7870)・ファイル監視・pipe が立つ |
+| ボイス作成 Web UI 単体 | `run.bat` | Gradio の Voice Studio(:7860) |
+
+トレイ常駐後の操作:
+
+- **トレイアイコンをダブルクリック** → Voice Studio（Web UI）を開く
+- **トレイアイコンを右クリック** → 読み上げ設定・ボイス選択・モデル退避などのメニュー
+
+デーモンのボイスは `--voice <名前>` で指定（既定は `noa`）。同梱ボイスは `noa` のみで、
+ほかのボイスは Web UI から自分で作成します。
+
+```bash
+python noa_tts_daemon.py --voice noa
+```
+
+> `NoaTTS.exe` は `noa_launcher.py` を PyInstaller でビルドしたものです。自分で作り直す場合:
+> ```bash
+> py -3.11 -m PyInstaller --onefile --noconsole --icon assets/noa.ico --name NoaTTS noa_launcher.py
+> ```
+
+---
+
+## HTTP API
+
+デーモン起動中、`http://127.0.0.1:7870/` をブラウザで開くとコントロールパネルが出ます。
+
+| メソッド | パス | 説明 |
+|---|---|---|
+| `POST` | `/say` | 本文（プレーン or JSON `{"text": "..."}`）を読み上げ |
+| `POST` | `/stop` | 読み上げを中断 |
+| `POST` | `/voice` | ボイス切替（`{"name": "..."}`） |
+| `POST` | `/speed` | 話速変更 |
+| `GET`  | `/health` | 稼働状態（JSON） |
+| `GET`  | `/voices` | ボイス一覧 |
+
+例:
+
+```bash
+curl -X POST http://127.0.0.1:7870/say -d "テストです。聞こえていますか？"
+```
+
+絵文字・マークダウン記号・コードブロックは送信時に自動除去されます。
+
+### 自動読み上げ（ファイル監視）
+
+`tts_auto.flag` ファイルが存在する間、`_tts_say.txt` の内容が書き換わると自動で読み上げます。
+外部スクリプトから「テキストをファイルに書くだけ」で読み上げさせたい場合に使います。フラグが無ければ無視されます（HTTP / pipe はフラグに関係なく常に読み上げ）。
+
+---
+
+## ボイスカード
+
+`voices/<名前>/` にボイスごとの `config.json`（話者・seed・参照音声・話速など）と参照音声を置きます。Web UI（`run.bat`）から作成・編集できます。
+
+> ⚠️ **同梱ボイスについて**: このリポジトリに同梱されるボイスは `noa`（自作）のみです。あなたがクローン作成した（参照音声に第三者の録音を使った）ボイスを追加して再配布する場合は、各自で権利関係を確認してください。
+
+---
+
+## ライセンス
+
+本アプリのコードは [MIT License](LICENSE) で配布します。
+ただし、使用する TTS モデル（[Qwen3-TTS](https://github.com/dffdeeq/Qwen3-TTS-streaming) / [Irodori-TTS](https://github.com/Aratako/Irodori-TTS)）および同梱ボイスのライセンスは、各提供元の条項に従います。
