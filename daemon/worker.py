@@ -83,23 +83,24 @@ class TTSWorker:
             return False
         is_vd = "VoiceDesign" in repo_id
         # 既に同じモデルなら何もしない
-        if not is_vd and repo_id == self._model_repo:
+        if repo_id == self._model_repo:
             return True
         # 進行中の読み上げを止めてから切替 (待ち時間短縮)
         self.cancel()
         with self._model_lock:
             try:
+                # VoiceDesign も通常ランタイムとして読み上げ本体に使える
+                # (検証済: caption 無しでも合成可)。読み上げ本体として恒久ロードし、
+                # vd_checkpoint も合わせて caption 付き読み上げと整合させる。
+                self._eng.unload()
+                self._eng.checkpoint = repo_id
+                self._eng._runtime = None
+                self._eng._load_runtime()
+                self._model_repo = repo_id
                 if is_vd:
-                    # VoiceDesign は遅延ロード。差し替えて次回使用時にロードさせる。
+                    # caption 付き読み上げ時の vd ランタイムも同じモデルに揃える
                     self._eng.vd_checkpoint = repo_id
-                    if getattr(self._eng, "_vd_runtime", None) is not None:
-                        self._eng._vd_runtime = None
-                else:
-                    self._eng.unload()
-                    self._eng.checkpoint = repo_id
-                    self._eng._runtime = None
-                    self._eng._load_runtime()
-                    self._model_repo = repo_id
+                    self._eng._vd_runtime = None
             except Exception as e:
                 print(f"[daemon] モデル切替失敗 ({repo_id}): {e}", flush=True)
                 # 失敗時は既定モデルで復旧を試みる (無モデル状態を避ける)
@@ -113,13 +114,14 @@ class TTSWorker:
                     pass
                 return False
         # settings.json に保存 (load してから1フィールドだけ更新し他フィールドを温存)
+        # 読み上げ本体は irodori_checkpoint に保存し、再起動後も選択を保持する。
+        # VoiceDesign を本体にした場合は vd_checkpoint も揃えておく。
         try:
             from config import AppConfig
             cfg = AppConfig.load()
+            cfg.irodori_checkpoint = repo_id
             if is_vd:
                 cfg.irodori_vd_checkpoint = repo_id
-            else:
-                cfg.irodori_checkpoint = repo_id
             cfg.save()
         except Exception:
             pass
