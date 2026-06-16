@@ -735,6 +735,8 @@ def _mascot_js() -> str:
       noaMuted = !noaMuted;
       muteBtn.textContent = noaMuted ? "🔇" : "🔊";
       muteBtn.classList.toggle("off", noaMuted);
+      // OFFにした瞬間、再生中の読み上げも止める(フラグだけでは鳴り続けるため)
+      if (noaMuted) fetch(TTS_STOP, {{ method: "POST" }}).catch(() => {{}});
     }};
     // 音量スライダー
     const volSlider = document.getElementById("noa-vol");
