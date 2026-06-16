@@ -34,6 +34,9 @@ assets/_state.txt
 # 開発用の Claude Code スキル等 (配布物には不要)
 .claude/
 
+# 開発用メモ (ローカルのみ・配布物には不要)
+memory-bank/
+
 # daemon の調整値の永続化ファイル (環境依存)
 gap.txt
 firstcut.txt
