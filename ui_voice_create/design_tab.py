@@ -2,7 +2,7 @@
 import gradio as gr
 
 from engine.tts_engine import TTSEngine
-from voice_creation import gen_voice_design, save_voice_action
+from voice.voice_creation import gen_voice_design, save_voice_action
 
 
 def build_design_tab():

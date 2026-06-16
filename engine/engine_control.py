@@ -13,7 +13,7 @@ import threading
 from pathlib import Path
 
 from config import AppConfig
-from voice_manager import VoiceManager
+from voice.voice_manager import VoiceManager
 from engine.tts_engine import TTSEngine
 
 # ── Globals ──

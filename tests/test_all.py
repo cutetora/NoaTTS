@@ -36,7 +36,7 @@ test("Config load", t_config)
 # ── 2. Voice Manager ──
 print("\n=== VoiceManager ===")
 def t_vm():
-    from voice_manager import VoiceManager, VoiceConfig
+    from voice.voice_manager import VoiceManager, VoiceConfig
     vm = VoiceManager(str(OUT / "_test_voices"))
     vc = VoiceConfig(name="test_voice", voice_type="design", language="Japanese",
                      attribute="テスト属性", voice_description="テスト説明", seed=42)

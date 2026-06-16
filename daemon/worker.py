@@ -129,7 +129,7 @@ class TTSWorker:
     def _load_voice_card(self, voice_name: str):
         """ボイスカードと clone_prompt を読み込む。エンジンは再利用 (切替で再呼出可)。"""
         import pickle
-        from voice_manager import VoiceManager
+        from voice.voice_manager import VoiceManager
 
         vm = VoiceManager(VOICES_DIR)
         vc = vm.load_voice(voice_name)

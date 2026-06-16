@@ -20,12 +20,12 @@ import pandas as pd
 import soundfile as sf
 
 from config import AppConfig, BASE_DIR
-from voice_manager import VoiceManager, VoiceConfig
+from voice.voice_manager import VoiceManager, VoiceConfig
 from engine.tts_engine import TTSEngine
 from engine.audio_utils import process_audio, voicevox_notify, check_voice_gender, check_speech_content, trim_silence, check_audio_duration, adjust_speed, trim_interior_pauses
 from mascot import _mascot_head_html, _mascot_js, _APP_CSS
 from engine.text_utils import normalize_tts_text
-from preset_manager import save_preset, load_preset, list_presets
+from voice.preset_manager import save_preset, load_preset, list_presets
 import engine.models_catalog as mcat
 
 import engine.engine_control as ec

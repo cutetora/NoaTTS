@@ -20,7 +20,7 @@ print("=" * 60)
 # ── Step 1: Load config and modules ──
 print("\n[Step 1] Loading modules...")
 from config import AppConfig
-from voice_manager import VoiceManager
+from voice.voice_manager import VoiceManager
 from engine.tts_engine import TTSEngine
 from engine.audio_utils import check_voice_gender, check_speech_content
 import re

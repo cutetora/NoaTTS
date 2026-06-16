@@ -12,7 +12,7 @@ import numpy as np
 import soundfile as sf
 
 from config import AppConfig
-from voice_manager import VoiceManager, VoiceConfig
+from voice.voice_manager import VoiceManager, VoiceConfig
 from engine.tts_engine import TTSEngine
 from app import test_saved_voice, save_voice_action, gen_custom_voice, gen_voice_design, vm, get_engine
 

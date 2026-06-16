@@ -11,7 +11,7 @@ import gradio as gr
 
 from engine.engine_control import cfg, vm, monitor, get_engine
 from engine.audio_utils import trim_silence, trim_interior_pauses, adjust_speed
-from voice_creation import test_saved_voice
+from voice.voice_creation import test_saved_voice
 
 
 def _load_clone_prompt(vc_cfg):
