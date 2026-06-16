@@ -97,7 +97,7 @@ class Api:
     def models(self):
         """irodori の使用可能モデル一覧 (DL状態付き)。daemon 不要。"""
         try:
-            import models_catalog as mcat
+            import engine.models_catalog as mcat
             entries = mcat.list_for_ui("irodori", include_hf=False)
             return {"ok": True, "models": [
                 {"repo_id": e.repo_id, "label": e.label, "role": e.role,
@@ -545,7 +545,7 @@ window.addEventListener('pywebviewready', init);
 def _render_html() -> str:
     """HTML の __EMOJI_PALETTE__ を感情絵文字ボタン群に置換して返す。"""
     try:
-        from emotion_emoji import EMOTION_EMOJI
+        from engine.emotion_emoji import EMOTION_EMOJI
     except Exception:
         EMOTION_EMOJI = []
     btns = "".join(

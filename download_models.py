@@ -14,7 +14,7 @@ import sys
 
 
 def _dl_irodori():
-    from irodori_engine import IrodoriEngine
+    from engine.irodori_engine import IrodoriEngine
     repo = IrodoriEngine.DEFAULT_CHECKPOINT
     print(f"[download] Irodori 読み上げモデル: {repo}", flush=True)
 
@@ -53,7 +53,7 @@ def _dl_irodori():
 
 
 def _dl_qwen3():
-    from tts_engine import TTSEngine
+    from engine.tts_engine import TTSEngine
     from huggingface_hub import snapshot_download
     eng = TTSEngine()  # GPUロードはしない (from_pretrained を呼ばない)
     size = eng.model_size

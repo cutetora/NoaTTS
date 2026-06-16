@@ -4,8 +4,8 @@
 (エンジン切替時に設定タブが無効化/非表示を切り替えるため)。"""
 import gradio as gr
 
-from engine_control import cfg, vm
-from emotion_emoji import EMOTION_EMOJI
+from engine.engine_control import cfg, vm
+from engine.emotion_emoji import EMOTION_EMOJI
 from voice_creation import (
     preview_voice, get_voice_icon_path, set_voice_icon_action, delete_voice_action,
 )

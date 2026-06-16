@@ -1,7 +1,7 @@
 """B. ボイスデザイン タブ (声の説明文から生成→キャラカード保存)。"""
 import gradio as gr
 
-from tts_engine import TTSEngine
+from engine.tts_engine import TTSEngine
 from voice_creation import gen_voice_design, save_voice_action
 
 

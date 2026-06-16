@@ -14,7 +14,7 @@ from pathlib import Path
 
 from config import AppConfig
 from voice_manager import VoiceManager
-from tts_engine import TTSEngine
+from engine.tts_engine import TTSEngine
 
 # ── Globals ──
 cfg = AppConfig.load()
@@ -137,7 +137,7 @@ def get_engine():
     global engine
     if engine is None:
         if cfg.tts_engine_type == "irodori":
-            from irodori_engine import IrodoriEngine
+            from engine.irodori_engine import IrodoriEngine
             engine = IrodoriEngine(
                 device=cfg.tts_device,
                 checkpoint=(cfg.irodori_checkpoint or None),

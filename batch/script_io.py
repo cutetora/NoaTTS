@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import soundfile as sf
 
-from engine_control import cfg
+from engine.engine_control import cfg
 from . import state
 from .state import SCRIPT_COLUMNS, RESULT_COLUMNS, generated_audio
 

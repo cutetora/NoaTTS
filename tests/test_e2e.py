@@ -21,8 +21,8 @@ print("=" * 60)
 print("\n[Step 1] Loading modules...")
 from config import AppConfig
 from voice_manager import VoiceManager
-from tts_engine import TTSEngine
-from audio_utils import check_voice_gender, check_speech_content
+from engine.tts_engine import TTSEngine
+from engine.audio_utils import check_voice_gender, check_speech_content
 import re
 
 cfg = AppConfig.load()

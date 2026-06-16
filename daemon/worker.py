@@ -56,7 +56,7 @@ class TTSWorker:
         return float(getattr(self._vc, "max_pause_sec", 0.0) or 0.0)
 
     def _load(self):
-        from irodori_engine import IrodoriEngine
+        from engine.irodori_engine import IrodoriEngine
         from config import AppConfig
 
         # settings.json の使用モデル指定を反映 (空なら既定)
@@ -104,7 +104,7 @@ class TTSWorker:
                 print(f"[daemon] モデル切替失敗 ({repo_id}): {e}", flush=True)
                 # 失敗時は既定モデルで復旧を試みる (無モデル状態を避ける)
                 try:
-                    from irodori_engine import IrodoriEngine
+                    from engine.irodori_engine import IrodoriEngine
                     self._eng.checkpoint = IrodoriEngine.DEFAULT_CHECKPOINT
                     self._eng._runtime = None
                     self._eng._load_runtime()
@@ -188,7 +188,7 @@ class TTSWorker:
         return True
 
     def _generate_one(self, text: str):
-        from audio_utils import trim_silence, trim_interior_pauses, adjust_speed
+        from engine.audio_utils import trim_silence, trim_interior_pauses, adjust_speed
         vc = self._vc
         clone_temp = vc.clone_temperature if vc.clone_temperature > 0 else -1.0
         # 感情caption (Irodoriクローン): HTTP /say で一時指定があれば優先、

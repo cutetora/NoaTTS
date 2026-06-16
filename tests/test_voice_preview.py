@@ -13,7 +13,7 @@ import soundfile as sf
 
 from config import AppConfig
 from voice_manager import VoiceManager, VoiceConfig
-from tts_engine import TTSEngine
+from engine.tts_engine import TTSEngine
 from app import test_saved_voice, save_voice_action, gen_custom_voice, gen_voice_design, vm, get_engine
 
 PASS = 0

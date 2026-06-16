@@ -7,9 +7,9 @@ import gradio as gr
 import numpy as np
 import pandas as pd
 
-from engine_control import cfg, vm, monitor, get_engine
-from text_utils import normalize_tts_text
-from audio_utils import trim_silence, trim_interior_pauses, adjust_speed
+from engine.engine_control import cfg, vm, monitor, get_engine
+from engine.text_utils import normalize_tts_text
+from engine.audio_utils import trim_silence, trim_interior_pauses, adjust_speed
 from .state import (
     SCRIPT_COLUMNS, RESULT_COLUMNS, generated_audio, voice_check_cache,
     speech_check_cache, generation_context,

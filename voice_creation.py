@@ -14,8 +14,8 @@ import numpy as np
 import soundfile as sf
 
 from voice_manager import VoiceConfig
-from audio_utils import trim_silence, trim_interior_pauses, adjust_speed
-from engine_control import (
+from engine.audio_utils import trim_silence, trim_interior_pauses, adjust_speed
+from engine.engine_control import (
     cfg, vm, monitor, get_engine, mark_generating, _wait_for_preload,
 )
 

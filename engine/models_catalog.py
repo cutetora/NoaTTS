@@ -24,7 +24,7 @@ class ModelEntry:
 def _verified_entries() -> list[ModelEntry]:
     entries: list[ModelEntry] = []
     try:
-        from irodori_engine import IrodoriEngine
+        from engine.irodori_engine import IrodoriEngine
         entries.append(ModelEntry(
             IrodoriEngine.DEFAULT_CHECKPOINT,
             "Irodori 500M v3 (読み上げ本体)", "irodori", "main", True))
@@ -34,7 +34,7 @@ def _verified_entries() -> list[ModelEntry]:
     except Exception:
         pass
     try:
-        from tts_engine import TTSEngine
+        from engine.tts_engine import TTSEngine
         seen = set()
         for role, sizes in TTSEngine.MODEL_MAP.items():
             for size, repo in sizes.items():

@@ -3,9 +3,9 @@
 vc_ref_text を返す (エンジン切替時に設定タブが表示/ラベルを書き換えるため)。"""
 import gradio as gr
 
-from tts_engine import TTSEngine
-from engine_control import cfg
-from audio_utils import trim_interior_pauses, adjust_speed
+from engine.tts_engine import TTSEngine
+from engine.engine_control import cfg
+from engine.audio_utils import trim_interior_pauses, adjust_speed
 from voice_creation import gen_voice_clone, remove_bgm, save_voice_action
 
 

@@ -6,7 +6,7 @@
 import re
 
 try:
-    from emotion_emoji import EMOTION_EMOJI
+    from engine.emotion_emoji import EMOTION_EMOJI
     _EMOTION_TOKENS = [e[0] for e in EMOTION_EMOJI]
 except Exception:
     _EMOTION_TOKENS = []
@@ -16,7 +16,7 @@ def _apply_reading_dict(text: str) -> str:
     """reading_dict.json の読み置換を適用 (NoaTTS→ノアティーティーエス 等)。
     text_utils の辞書ローダを再利用。辞書が無ければ素通り。長いキー優先。"""
     try:
-        from text_utils import _load_reading_dict
+        from engine.text_utils import _load_reading_dict
         rd = _load_reading_dict()
     except Exception:
         return text

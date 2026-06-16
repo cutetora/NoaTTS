@@ -21,15 +21,15 @@ import soundfile as sf
 
 from config import AppConfig, BASE_DIR
 from voice_manager import VoiceManager, VoiceConfig
-from tts_engine import TTSEngine
-from audio_utils import process_audio, voicevox_notify, check_voice_gender, check_speech_content, trim_silence, check_audio_duration, adjust_speed, trim_interior_pauses
+from engine.tts_engine import TTSEngine
+from engine.audio_utils import process_audio, voicevox_notify, check_voice_gender, check_speech_content, trim_silence, check_audio_duration, adjust_speed, trim_interior_pauses
 from mascot import _mascot_head_html, _mascot_js, _APP_CSS
-from text_utils import normalize_tts_text
+from engine.text_utils import normalize_tts_text
 from preset_manager import save_preset, load_preset, list_presets
-import models_catalog as mcat
+import engine.models_catalog as mcat
 
-import engine_control as ec
-from engine_control import (
+import engine.engine_control as ec
+from engine.engine_control import (
     cfg, vm, monitor, get_engine, mark_generating, start_preload,
     unload_engine_action, _wait_for_preload,
 )

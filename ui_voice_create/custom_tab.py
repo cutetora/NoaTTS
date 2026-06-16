@@ -1,7 +1,7 @@
 """A. カスタムボイス タブ (Qwen3専用: 内蔵スピーカーで生成→保存)。"""
 import gradio as gr
 
-from tts_engine import TTSEngine
+from engine.tts_engine import TTSEngine
 from voice_creation import gen_custom_voice, save_voice_action
 
 

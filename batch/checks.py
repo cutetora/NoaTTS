@@ -1,7 +1,7 @@
 """声質チェック(F0)・セリフ照合(Whisper)と結果テーブルの構築。"""
 import pandas as pd
 
-from audio_utils import check_voice_gender, check_speech_content
+from engine.audio_utils import check_voice_gender, check_speech_content
 from .state import (
     RESULT_COLUMNS, generated_audio, voice_check_cache, speech_check_cache,
 )

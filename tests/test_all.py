@@ -65,7 +65,7 @@ test("Claude CLI hiragana + motion", t_llm)
 
 # ── 4. TTS Engine - CustomVoice ──
 print("\n=== TTS Engine ===")
-from tts_engine import TTSEngine
+from engine.tts_engine import TTSEngine
 engine = TTSEngine(model_size="1.7B", device="cuda:0")
 
 def t_custom():

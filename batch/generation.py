@@ -9,9 +9,9 @@ import numpy as np
 import pandas as pd
 import soundfile as sf
 
-from engine_control import cfg, vm, monitor, get_engine, mark_generating
-from text_utils import normalize_tts_text
-from audio_utils import (
+from engine.engine_control import cfg, vm, monitor, get_engine, mark_generating
+from engine.text_utils import normalize_tts_text
+from engine.audio_utils import (
     trim_silence, trim_interior_pauses, adjust_speed, check_audio_duration,
 )
 from . import state

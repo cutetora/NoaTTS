@@ -9,8 +9,8 @@ from pathlib import Path
 
 import gradio as gr
 
-from engine_control import cfg, vm, monitor, get_engine
-from audio_utils import trim_silence, trim_interior_pauses, adjust_speed
+from engine.engine_control import cfg, vm, monitor, get_engine
+from engine.audio_utils import trim_silence, trim_interior_pauses, adjust_speed
 from voice_creation import test_saved_voice
 
 
