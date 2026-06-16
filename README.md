@@ -158,7 +158,7 @@ Web UI の絵文字パレットからも挿入できます。
 
 台本（CSV / Excel）を読み込み、登場キャラごとにボイスを割り当てて、まとめて音声ファイルを生成できます（動画・ゲームのセリフ作りなどに）。キャラ⇔ボイスの割り当ては **プリセット**として `presets/<名前>.json` に保存・呼び出しできます。Web UI の「セリフ一括生成」タブから操作します。
 
-サンプル台本（記入例つき）: [sample_script.xlsx](sample_script.xlsx)（Excel・推奨） / [sample_script.csv](sample_script.csv)（CSV）。どちらも Google スプレッドシートでも開けます。
+サンプル台本（記入例つき）: [sample_script.xlsx](sample_script.xlsx)（Excel・推奨） / [sample_script.csv](sample_script.csv)（CSV）。どちらも Google スプレッドシートでも開けます。「テンプレート作成」ボタンを押すと、このサンプルがその場でセリフテーブルに読み込まれ、編集してそのまま「上書き保存」できます（ダウンロードも可）。
 
 台本の列（順不同・見出し名で自動認識）:
 
@@ -180,6 +180,27 @@ Web UI の絵文字パレットからも挿入できます。
 `voices/<名前>/` にボイスごとの `config.json`（話者・seed・参照音声・話速など）と参照音声を置きます。Web UI（`run.bat`）から作成・編集できます。
 
 > ⚠️ **同梱ボイスについて**: このリポジトリに同梱されるボイスは `noa`（自作）のみです。あなたがクローン作成した（参照音声に第三者の録音を使った）ボイスを追加して再配布する場合は、各自で権利関係を確認してください。
+
+---
+
+## フォルダ構成（開発者向け）
+
+コードは機能ごとにパッケージへ分類しています。エントリポイントと設定パス基準（`config.py`）はルート直下のままです。
+
+```
+engine/   TTS合成コア（tts_engine, irodori_engine, engine_control, audio_utils, models_catalog, emotion_emoji, text_utils）
+voice/    ボイス管理（voice_manager, voice_creation, preset_manager）
+ui/       Voice Studio のUI部品（mascot, ui_voice_create/）
+daemon/   読み上げデーモン
+batch/    セリフ一括生成
+conf/     設定・読み辞書（settings.json※ / settings.default.json / reading_dict.json）
+tests/    テスト
+assets/ docs/ voices/ presets/   素材・データ
+```
+
+ルート直下の `.py` はエントリポイント（`app.py` / `tray.py` / `noa_tts_daemon.py` / `noa_launcher.py` / `tts_api_window.py` / `webview_window.py` / `download_models.py`）と、全体が参照する基盤（`config.py`）です。`bat`・`NoaTTS.exe` はこれらをファイル名で起動するため、移動していません。
+
+> ※ `conf/settings.json` は初回起動時に `conf/settings.default.json` からコピー生成され、以後ユーザー設定で書き換わるため git 管理外です。
 
 ---
 
