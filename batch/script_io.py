@@ -13,6 +13,39 @@ from . import state
 from .state import SCRIPT_COLUMNS, RESULT_COLUMNS, generated_audio
 
 
+def create_template():
+    """台本テンプレートを生成し、そのまま読み込んでセリフテーブルへ反映する。
+
+    同梱の sample_script.csv (記入例・区切り行つき8カラム) をテンプレ元に使い、
+    一時CSVへコピーしてから load_script_file に通す。これにより
+    テーブル表示・キャラ抽出・上書き保存用パス(state._loaded_file_path)が
+    通常の読み込みと同じ経路で揃う。戻り値は load_script_file と同形。
+    返り値: (df, status, char_dropdown_update, download_file_update)
+    """
+    import tempfile
+    from config import BASE_DIR
+
+    sample = BASE_DIR / "sample_script.csv"
+    if sample.exists():
+        df = pd.read_csv(sample, encoding="utf-8-sig")
+    else:
+        # フォールバック: 同梱サンプルが無い場合の最小テンプレ (8カラム)
+        df = pd.DataFrame(columns=SCRIPT_COLUMNS)
+        df.loc[0] = ["1", "クールで低い声の青年、無愛想で言葉少な", "001_taro_ohayo",
+                     "おはようございます", "", "", "少し照れながら", ""]
+        df.loc[1] = ["2", "明るく元気なお姉さん、ハキハキした話し方", "002_hanako_tenki",
+                     "今日は良い天気ですね", "", "", "穏やかに微笑みながら", "★"]
+
+    path = os.path.join(tempfile.gettempdir(), "script_template.csv")
+    df.to_csv(path, index=False, encoding="utf-8-sig")
+
+    class _F:  # load_script_file は .name を参照する
+        name = path
+    out_df, status, char_update = load_script_file(_F())
+    status = "テンプレートを作成しました。編集後「上書き保存」で同じファイルに保存できます。 / " + status
+    return out_df, status, char_update, gr.update(value=path, visible=True)
+
+
 def load_script_file(file):
     if file is None:
         return None, "ファイルを選択してください", gr.update(choices=[])

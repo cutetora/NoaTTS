@@ -35,7 +35,7 @@ from engine.engine_control import (
 )
 
 from batch import (
-    SCRIPT_COLUMNS, RESULT_COLUMNS, load_script_file, assign_voice_to_char, stop_batch,
+    SCRIPT_COLUMNS, RESULT_COLUMNS, create_template, load_script_file, assign_voice_to_char, stop_batch,
     run_batch_generation, on_result_row_select, generate_ng_report,
     export_ng_excel, regenerate_row, check_row, save_script_table,
     save_result_table, export_all,
@@ -212,17 +212,6 @@ def build_ui():
             template_file = gr.File(label="ダウンロード", visible=False)
             script_load_status = gr.Textbox(label="ステータス", interactive=False)
 
-            def create_template():
-                import tempfile
-                tpl = pd.DataFrame(columns=SCRIPT_COLUMNS)
-                tpl.loc[0] = ["1", "クールで低い声の青年、無愛想で言葉少な", "001_taro_ohayo", "おはようございます", "", "喜", "少し照れながら", "★"]
-                tpl.loc[1] = ["2", "明るく元気なお姉さん、ハキハキした話し方", "002_hanako_tenki", "今日はいい天気ですね", "", "", "穏やかに微笑みながら", ""]
-                path = os.path.join(tempfile.gettempdir(), "script_template.csv")
-                tpl.to_csv(path, index=False, encoding="utf-8-sig")
-                return gr.update(value=path, visible=True)
-
-            template_btn.click(create_template, outputs=[template_file])
-
             # ② Table display
             gr.Markdown("### ② セリフテーブル", elem_id="tut-batch-2")
             gr.Markdown("*セリフ仮名は読みが曖昧な箇所のみ手動入力（空欄ならセリフをそのまま使用）*")
@@ -240,6 +229,17 @@ def build_ui():
                 load_script_file,
                 inputs=[script_file],
                 outputs=[script_df, script_load_status, char_dd],
+            ).then(
+                lambda df: df if df is not None else gr.update(),
+                inputs=[script_df],
+                outputs=[script_table],
+            )
+
+            # テンプレート作成: 生成と同時にセリフテーブルへ反映し、DLリンクも出す。
+            # (元ファイルパスもセットされるので、編集後そのまま「上書き保存」が効く)
+            template_btn.click(
+                create_template,
+                outputs=[script_df, script_load_status, char_dd, template_file],
             ).then(
                 lambda df: df if df is not None else gr.update(),
                 inputs=[script_df],

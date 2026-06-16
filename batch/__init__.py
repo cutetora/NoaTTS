@@ -13,7 +13,7 @@ from .state import (
     speech_check_cache, generation_context,
 )
 from .checks import run_voice_check, build_result_table
-from .script_io import load_script_file, save_script_table, save_result_table, export_all
+from .script_io import create_template, load_script_file, save_script_table, save_result_table, export_all
 from .generation import assign_voice_to_char, stop_batch, run_batch_generation
 from .results import (
     on_result_row_select, generate_ng_report, export_ng_excel,
