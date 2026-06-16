@@ -12,7 +12,7 @@ import time
 import threading
 from pathlib import Path
 
-from config import AppConfig
+from config import AppConfig, BASE_DIR
 from voice.voice_manager import VoiceManager
 from engine.tts_engine import TTSEngine
 
@@ -27,7 +27,9 @@ is_generating: bool = False  # 生成中=True (トレイアイコンが走る)
 engine_loaded_at: float = 0.0  # 最後にエンジンが使われた時刻 (アンロード判定用)
 
 
-_STATE_FILE = Path(__file__).parent / "assets" / "_state.txt"
+# トレイアイコンの状態書き出し先はプロジェクト直下の assets/ (tray.py が ROOT/assets を読む)。
+# engine/ に移動後も engine/assets ではなくルートを指すよう BASE_DIR 基準にする。
+_STATE_FILE = BASE_DIR / "assets" / "_state.txt"
 
 
 def mark_generating(state: bool):
