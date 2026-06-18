@@ -3,13 +3,33 @@
 ローカルで動く日本語TTS（音声合成）アプリ。モデルをVRAMに常駐させて、テキストを投げると即座に読み上げる。声は「ボイスカード」として保存・切替でき、ボイスクローンにも対応する。
 
 - **2つのTTSエンジン**を切替可能 — [Qwen3-TTS](https://huggingface.co/Qwen) / [Irodori-TTS](https://huggingface.co/Aratako)
-- **VRAM常駐デーモン** — 初回ロード後は待ち時間なしで読み上げ
+- **VRAM常駐デーモン** — 初回ロード後は待ち時間なしで読み上げ（待機 約1.3GB）
+- **⚡軽量モード** — int4軽量モデルでVRAMを節約（読み上げ中も 約1.5GB）。画像生成やゲームなど重いアプリと同居しやすい
 - **3つの入力経路** — HTTP API / ファイル監視 / Windows named pipe
 - **感情絵文字スタイル制御**（Irodori） — 文中に 😭😠🥺 などを入れると、声を保ったまま感情が乗る
 - **セリフ一括生成** — 台本（CSV/Excel）を読み込み、キャラごとにボイスを割り当ててまとめて音声化
 - **タスクトレイ常駐** + Web UI（Gradio）でボイス作成・編集（マスコット「ノア」が使い方を案内）
 
-> Windows 専用（named pipe を使用）。NVIDIA GPU + CUDA を推奨。
+---
+
+## 動作環境
+
+> Windows 専用（named pipe を使用）。GPU は NVIDIA + CUDA が前提です（CPU のみでの動作は実用的ではありません）。
+
+| 項目 | 最小 | 推奨 |
+|---|---|---|
+| OS | Windows 10 / 11 (64bit) | Windows 11 (64bit) |
+| GPU | NVIDIA（CUDA対応）／VRAM 6GB〜（目安） | NVIDIA RTX 系／VRAM 12GB〜 |
+| 主に使えるエンジン | Irodori 500M 中心 | Qwen3 1.7B・VoiceDesign も快適に切替 |
+| メモリ (RAM) | 8GB | 16GB〜 |
+| ストレージ | SSD 空き 10GB〜 | SSD 空き 20GB〜 |
+| Python | 3.11 | 3.11 |
+| PyTorch | CUDA 対応版 | CUDA 12.x 対応版（動作確認: torch 2.11.0+cu128 / CUDA 12.8） |
+
+> ⚠️ **VRAM はモデルサイズからの推定値**（実測ではありません）。Irodori 500M はおおむね 3〜4GB、Qwen3-TTS 1.7B + VoiceDesign は 6〜8GB 程度を見込みます。両エンジンを切り替えて使うなら 12GB あると安心です。
+
+- ストレージは PyTorch（数GB）＋モデルの内訳です。**Irodori 500M ≈ 2GB／Qwen3-TTS 1.7B ≈ 4GB**（使うモデルだけ落とせば節約できます）。
+- CUDA バージョンは GPU 世代に依存します（例: RTX 50 系 = cu128、それ以前 = cu121 など）。`setup.bat` の `TORCH_INDEX` で環境に合わせてください。
 
 ---
 
@@ -201,6 +221,12 @@ assets/ docs/ voices/ presets/   素材・データ
 ルート直下の `.py` はエントリポイント（`app.py` / `tray.py` / `noa_tts_daemon.py` / `noa_launcher.py` / `tts_api_window.py` / `webview_window.py` / `download_models.py`）と、全体が参照する基盤（`config.py`）です。`bat`・`NoaTTS.exe` はこれらをファイル名で起動するため、移動していません。
 
 > ※ `conf/settings.json` は初回起動時に `conf/settings.default.json` からコピー生成され、以後ユーザー設定で書き換わるため git 管理外です。
+
+---
+
+## 更新履歴
+
+変更点は [CHANGELOG.md](CHANGELOG.md) を参照してください。最新版は **v1.1.0**（⚡軽量モード・VRAM大幅削減）。
 
 ---
 
