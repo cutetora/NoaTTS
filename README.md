@@ -19,14 +19,14 @@
 | 項目 | 最小 | 推奨 |
 |---|---|---|
 | OS | Windows 10 / 11 (64bit) | Windows 11 (64bit) |
-| GPU | NVIDIA（CUDA対応）／VRAM 6GB〜（目安） | NVIDIA RTX 系／VRAM 12GB〜 |
+| GPU | NVIDIA（CUDA対応）／VRAM 4GB〜（⚡軽量モード時） | NVIDIA RTX 系／VRAM 8GB〜（Qwen3・VoiceDesign も使うなら 12GB〜） |
 | 主に使えるエンジン | Irodori 500M 中心 | Qwen3 1.7B・VoiceDesign も快適に切替 |
 | メモリ (RAM) | 8GB | 16GB〜 |
 | ストレージ | SSD 空き 10GB〜 | SSD 空き 20GB〜 |
 | Python | 3.11 | 3.11 |
 | PyTorch | CUDA 対応版 | CUDA 12.x 対応版（動作確認: torch 2.11.0+cu128 / CUDA 12.8） |
 
-> ⚠️ **VRAM はモデルサイズからの推定値**（実測ではありません）。Irodori 500M はおおむね 3〜4GB、Qwen3-TTS 1.7B + VoiceDesign は 6〜8GB 程度を見込みます。両エンジンを切り替えて使うなら 12GB あると安心です。
+> ⚠️ **VRAM 実測値（v1.1.0）**：⚡軽量モード（Irodori int4）は **待機 約1.3GB／読み上げ中 約1.5GB**（CUDAコンテキスト等で実際のGPU占有は +0.5〜1GB ほど）。通常の Irodori 500M（bf16）は読み上げ中 約2.4GB、VoiceDesign 600M は約2.5GB。Qwen3-TTS 1.7B は 6〜8GB 程度（大型・別エンジン）。Voice Studio で声作成も並行するとモデルがもう一つ載るため、両エンジン併用や同時利用なら 8〜12GB あると安心です。
 
 - ストレージは PyTorch（数GB）＋モデルの内訳です。**Irodori 500M ≈ 2GB／Qwen3-TTS 1.7B ≈ 4GB**（使うモデルだけ落とせば節約できます）。
 - CUDA バージョンは GPU 世代に依存します（例: RTX 50 系 = cu128、それ以前 = cu121 など）。`setup.bat` の `TORCH_INDEX` で環境に合わせてください。
