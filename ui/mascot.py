@@ -54,6 +54,7 @@ _NOA_SCRIPTS = {
         {"t": "ちなみにトレイのアイコンは、わたしの顔なんですよーっ。こんなふうに色がついて動いてたら、読み上げが稼働中ですっ！ いつでも喋れる状態ですよー", "f": "doya", "img": "tray_active.png"},
         {"t": "逆に、こんなふうに白黒でzZと寝ちゃってたら、読み上げが停止中ですっ。そのときは設定ウィンドウの「起動」を押して、わたしを起こしてあげてくださいねー", "f": "naki", "img": "tray_idle.png"},
         {"t": "一番上は稼働状態ですっ。緑のマルが出てれば読み上げの準備OKですよー。起動・停止・再起動もここでできます", "f": "normal", "img": "settings_hint.png"},
+        {"t": "起動ボタンの下に「⚡軽量モード」のチェックがありますよー。オンにすると軽いモデルに切り替わって、VRAM（グラボのメモリ）をぐっと節約できるんですっ。音質はほぼそのままなので、画像生成やゲームみたいな重いソフトと一緒に使いたいときにおすすめですよー", "f": "doya", "img": "settings_hint.png"},
         {"t": "「ボイスと話速」では、使う声を選んで、話すスピードを変えられますよー。スライダーを右にすると速くなりますっ", "f": "normal", "img": "settings_hint.png"},
         {"t": "「自動読み上げ」をオンにすると、ファイルに書いたテキストを自動で読み上げてくれますよー。普段はオフでいいですっ", "f": "normal", "img": "settings_hint.png"},
         {"t": "「テスト読み上げ」で、文を入れて読み上げるボタンを押せば、その声をすぐ試せますよー。サンプルボタンを押すと例文とランダムな感情が入りますっ", "f": "doya", "img": "settings_hint.png"},
@@ -84,6 +85,7 @@ _NOA_SCRIPTS = {
         {"t": "Q.それでも調子が悪い？\nA.モデルのアンロードと再ロードを試すと直ることが多いですよー", "f": "normal"},
         {"t": "Q.エンジンって？\nA.Qwen3とIrodori、2つの読み上げAIを切り替えられるんですよー。設定タブで変えられますっ", "f": "normal"},
         {"t": "Q.声に感情を込めるには？\nA.文章に感情の絵文字を入れるのが一番ですよー！ 泣き・怒り・震え声・囁きなんかがあって、重ねると強くなりますっ。Irodoriのクローン声でよく効きますよー", "f": "doya"},
+        {"t": "Q.VRAMが足りない・重いんだけど？\nA.読み上げ設定の「⚡軽量モード」をオンにしてくださいっ。軽いモデルに切り替わってVRAM（グラボのメモリ）をぐっと節約できますよー。音質はほぼそのままなので、画像生成やゲームみたいな重いソフトと一緒に使うときにぴったりですっ", "f": "majime"},
         {"t": "だいたいこれで解決できるはずですっ。他に困ったら、いつでも呼んでくださいねー、ふふっ", "f": "tere"},
     ],
 }
@@ -95,6 +97,8 @@ _TUTORIAL_LINES = [s["t"] for s in _NOA_SCRIPTS["intro"]]
 # kw=マッチするキーワード(どれか1つでも入力に含まれればヒット)、a=ノアの回答。
 # 入力とkwを照合し、最もヒット数の多いQ&Aを返す。ユーザーが聞きそうな質問を網羅。
 _FAQ = [
+    {"kw": ["VRAM", "vram", "メモリ", "重い", "軽量", "軽く", "グラボ", "GPU", "落ちる", "OOM", "節約"],
+     "a": "VRAM（グラボのメモリ）が足りない・重いときは、読み上げ設定の「⚡軽量モード」をオンにしてくださいっ。軽いモデルに切り替わってメモリをぐっと節約できますよー。音質はほぼそのまま、画像生成やゲームと一緒に使うときにおすすめですっ"},
     {"kw": ["声", "作る", "作り方", "クローン", "作成", "ボイス作成"],
      "a": "声を作るなら「ボイス作成」タブですよー！ 一番かんたんなのはクローンで、お手本の音声を3〜10秒入れて「クローン生成」するだけですっ。詳しくは使い方の「ボイスクローン」を見てくださいねー"},
     {"kw": ["クローン", "参照音声", "お手本", "マネ", "似せる"],
@@ -155,7 +159,7 @@ def _mascot_head_html() -> str:
     表情画像は base64 で全種埋め込む。"""
     import base64 as _b64
     import json as _json
-    noa_dir = Path(__file__).parent / "assets" / "noa"
+    noa_dir = Path(__file__).parent.parent / "assets" / "noa"
 
     def _b64img(p: Path) -> str:
         if p.exists():
@@ -171,11 +175,11 @@ def _mascot_head_html() -> str:
     for name in ["A", "I", "U", "E", "O"]:
         mouths[name] = _b64img(noa_dir / f"mouth_{name}.png")
     # フォールバック (分割前の単一画像)
-    fallback = _b64img(Path(__file__).parent / "assets" / "mascot.png")
+    fallback = _b64img(Path(__file__).parent.parent / "assets" / "mascot.png")
     # 指差し「ココ!」マーカー画像
     point_img = _b64img(noa_dir / "point_here.png")
     # 吹き出しに出す説明画像(設定スクショ・トレイアイコン見本等)
-    _assets = Path(__file__).parent / "assets"
+    _assets = Path(__file__).parent.parent / "assets"
     bubble_imgs = {
         "settings_hint.png": _b64img(noa_dir / "settings_hint.png"),
         # トレイアイコン見本: 色付き(稼働中)=walk / 白黒+zZ(停止中)=idle
@@ -315,12 +319,12 @@ def _mascot_js() -> str:
     import base64 as _b64
     import json as _json
     from pathlib import Path as _P
-    noa_dir = _P(__file__).parent / "assets" / "noa"
+    noa_dir = _P(__file__).parent.parent / "assets" / "noa"
     def _b64img(p):
         return ("data:image/png;base64," + _b64.b64encode(p.read_bytes()).decode("ascii")) if p.exists() else ""
     faces = {n: _b64img(noa_dir / f"face_{n}.png") for n in ["normal","nikkori","majime","komari","okori","naki","odoroki","tere","doya","jito","doya2"]}
     mouths = {n: _b64img(noa_dir / f"mouth_{n}.png") for n in ["A","I","U","E","O"]}
-    fallback = _b64img(_P(__file__).parent / "assets" / "mascot.png")
+    fallback = _b64img(_P(__file__).parent.parent / "assets" / "mascot.png")
     point_img = _b64img(noa_dir / "point_here.png")
     bubble_imgs = {"settings_hint.png": _b64img(noa_dir / "settings_hint.png")}
     bubble_imgs_js = _json.dumps(bubble_imgs, ensure_ascii=False)
