@@ -20,6 +20,12 @@ class AppConfig:
     # モデル管理UI でユーザーが選んだ HF repo_id をここに永続化する。
     irodori_checkpoint: str = ""        # 例 "Aratako/Irodori-TTS-500M-v3"
     irodori_vd_checkpoint: str = ""     # VoiceDesign 用
+    # 軽量モード: ON で int4 軽量モデル(約1.5GB)を優先し、UIエンジンをアイドル時に
+    # 自動解放する。OFF で通常 bf16 モデル(約1.8GB)・常駐。
+    lightweight_mode: bool = False
+    # 軽量モード時のUIアイドル自動アンロード秒数 (0で無効)。最後の生成からこの秒数
+    # 無操作でUIエンジンを退避し、次の生成で自動再ロードする。
+    ui_idle_unload_sec: int = 180
 
     # LLM
     llm_provider: str = "claude"  # "claude" or "ollama"

@@ -2,12 +2,16 @@
 import os
 import time
 import queue
+import hashlib
 import datetime
 import threading
 from pathlib import Path
 
 from daemon import tuning
-from .runtime import BASE_DIR, VOICES_DIR, OUTPUT_DIR, write_active_voice
+from .runtime import (
+    BASE_DIR, VOICES_DIR, OUTPUT_DIR, CACHE_DIR, CACHE_FLAG_PATH,
+    TMP_SAY_DIR, write_active_voice,
+)
 from .tuning import _split_sentences
 from .player import StreamPlayer
 
@@ -37,7 +41,57 @@ class TTSWorker:
                 self._pause_override = max(0.0, min(2.0, float(pf.read_text(encoding="utf-8").strip())))
         except Exception:
             pass
+        # 音声キャッシュ(WAV使い回し)。既定OFF。cache.flag が存在すればON。
+        # この回だけの上書きは _cache_override (None=既定に従う)。
+        self.cache_enabled = CACHE_FLAG_PATH.exists()
+        self._cache_override = None
         self._load()
+
+    def set_cache(self, enabled) -> bool:
+        """音声キャッシュの既定ON/OFFを設定。cache.flag で永続化。"""
+        on = bool(enabled)
+        self.cache_enabled = on
+        try:
+            if on:
+                CACHE_FLAG_PATH.write_text("1", encoding="utf-8")
+            elif CACHE_FLAG_PATH.exists():
+                CACHE_FLAG_PATH.unlink()
+        except Exception:
+            pass
+        return on
+
+    def clear_cache(self) -> int:
+        """キャッシュ済みWAVを全削除。削除した件数を返す。"""
+        n = 0
+        try:
+            if CACHE_DIR.is_dir():
+                for f in CACHE_DIR.glob("*.wav"):
+                    try:
+                        f.unlink(); n += 1
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+        return n
+
+    def _cache_on(self) -> bool:
+        """この読み上げでキャッシュを使うか。_cache_override 優先、無ければ既定。"""
+        if self._cache_override is not None:
+            return bool(self._cache_override)
+        return bool(self.cache_enabled)
+
+    def _cache_path(self, text, vc, caption, pause_cap, speed):
+        """文+声+感情+速度+ポーズ上限 から一意なキャッシュファイルパスを作る。
+        どれか1つでも変われば別ファイルになる(別音声として扱う)。"""
+        voice_id = getattr(vc, "name", None) or getattr(vc, "voice_type", "") or self.voice_name
+        seed = getattr(vc, "seed", "")
+        key = "\x1f".join([
+            str(voice_id), str(text), str(caption or ""),
+            f"{float(speed or 1.0):.4f}", f"{float(pause_cap or 0.0):.4f}",
+            str(seed),
+        ])
+        h = hashlib.sha1(key.encode("utf-8")).hexdigest()
+        return CACHE_DIR / f"{h}.wav"
 
     def set_pause(self, sec) -> float:
         """音声内ポーズ上限(秒)を設定。0で無加工。pause.txt に永続化。"""
@@ -189,17 +243,12 @@ class TTSWorker:
         print(f"[daemon] 話速変更 → {speed} ({self.voice_name})", flush=True)
         return True
 
-    def _generate_one(self, text: str):
+    def _gen_core(self, text, vc, clone_prompt, caption, pause_cap, speed):
+        """1文を合成して後処理した波形 (wav, sr) を返す中核。
+        /say と /say_wav の双方から呼ぶ。self の可変状態は読まない(引数で受ける)ので、
+        渡す引数さえスレッドローカルなら並行安全。エンジン呼び出しは _model_lock で排他。"""
         from engine.audio_utils import trim_silence, trim_interior_pauses, adjust_speed
-        vc = self._vc
         clone_temp = vc.clone_temperature if vc.clone_temperature > 0 else -1.0
-        # 感情caption (Irodoriクローン): HTTP /say で一時指定があれば優先、
-        # 無ければボイスカードの既定感情(default_caption)。clone_promptは
-        # 通常モデルのlatentキャッシュなので、caption使用時はエンジン側で
-        # ref_wav へフォールバックされる。
-        caption = getattr(self, "_caption_override", None)
-        if caption is None:
-            caption = getattr(vc, "default_caption", "") or ""
         # モデル切替(GPU再ロード)中は完了まで待つ。切替と生成の排他。
         with self._model_lock:
             wav, sr = self._eng.generate_for_script_row(
@@ -212,32 +261,128 @@ class TTSWorker:
                 ref_text=vc.ref_text,
                 voice_description=vc.voice_description,
                 seed=vc.seed,
-                voice_clone_prompt=self._clone_prompt,
+                voice_clone_prompt=clone_prompt,
                 clone_temperature=clone_temp,
                 clone_caption=caption,
             )
         wav = trim_silence(wav, sr)
+        if pause_cap and pause_cap > 0:
+            wav = trim_interior_pauses(wav, sr, pause_cap)
+        if speed and float(speed) != 1.0:
+            wav = adjust_speed(wav, sr, float(speed))
+        return wav, sr
+
+    def _generate_one(self, text: str):
+        vc = self._vc
+        # 感情caption (Irodoriクローン): HTTP /say で一時指定があれば優先、
+        # 無ければボイスカードの既定感情(default_caption)。clone_promptは
+        # 通常モデルのlatentキャッシュなので、caption使用時はエンジン側で
+        # ref_wav へフォールバックされる。
+        caption = getattr(self, "_caption_override", None)
+        if caption is None:
+            caption = getattr(vc, "default_caption", "") or ""
         # 音声内の「、」「。」等のポーズ上限。0なら無加工。
         # _pause_override が設定されていれば config より優先(HTTP /pause で可変)。
         pause_cap = self._pause_override if self._pause_override is not None \
             else float(getattr(vc, "max_pause_sec", 0.0) or 0.0)
-        if pause_cap > 0:
-            wav = trim_interior_pauses(wav, sr, pause_cap)
-        if getattr(vc, "speed", 1.0) != 1.0:
-            wav = adjust_speed(wav, sr, float(vc.speed))
-        return wav, sr
+        speed = getattr(vc, "speed", 1.0)
 
-    def speak(self, text: str, caption=None):
+        # ── 音声キャッシュ(使い回し) ──
+        # ON時: 同じ文+声+感情+速度+ポーズのWAVが cache/ にあれば合成せず読み込む。
+        if self._cache_on():
+            import soundfile as sf
+            cpath = self._cache_path(text, vc, caption, pause_cap, speed)
+            if cpath.exists():
+                try:
+                    wav, sr = sf.read(str(cpath), dtype="float32")
+                    print(f"[daemon] cache hit: {cpath.name}", flush=True)
+                    return wav, sr
+                except Exception as e:
+                    print(f"[daemon] cache読み込み失敗(再生成): {e}", flush=True)
+            wav, sr = self._gen_core(text, vc, self._clone_prompt, caption, pause_cap, speed)
+            try:
+                CACHE_DIR.mkdir(exist_ok=True)
+                sf.write(str(cpath), wav, sr)
+                print(f"[daemon] cache保存: {cpath.name}", flush=True)
+            except Exception as e:
+                print(f"[daemon] cache保存失敗: {e}", flush=True)
+            return wav, sr
+
+        return self._gen_core(text, vc, self._clone_prompt, caption, pause_cap, speed)
+
+    def _load_vc_only(self, voice_name: str):
+        """指定ボイスの (vc, clone_prompt) を self を汚さず読み込んで返す。
+        /say_wav の voice 引数用 (アクティブ声を切り替えない)。同checkpoint前提。"""
+        import pickle
+        from voice.voice_manager import VoiceManager
+
+        vm = VoiceManager(VOICES_DIR)
+        vc = vm.load_voice(voice_name)
+        clone_prompt = None
+        if vc.clone_prompt_path and os.path.exists(vc.clone_prompt_path):
+            if vc.clone_prompt_path.endswith(".pt"):
+                clone_prompt = vc.clone_prompt_path  # Irodori latent: パス文字列のまま
+            else:
+                with open(vc.clone_prompt_path, "rb") as f:
+                    clone_prompt = pickle.load(f)
+        return vc, clone_prompt
+
+    def synthesize_wav(self, text: str, voice=None, speed=None):
+        """text を鳴らさずに合成し、結合した1本の波形 (wav, sr=ネイティブ) を返す。
+        /say_wav 用。再生せず・output/ に依存せず・アクティブ声を切り替えない。
+        voice: None/アクティブ声と同じなら現在の声、別IDなら一時ロードして使用(同checkpoint前提)。
+        speed: 倍率(省略時はボイスカードの speed)。
+        並行安全: self の override 類(caption/pause/volume)を一切触らない。"""
+        import numpy as np
+
+        if voice and voice != self.voice_name:
+            vc, clone_prompt = self._load_vc_only(voice)
+        else:
+            vc, clone_prompt = self._vc, self._clone_prompt
+
+        caption = getattr(vc, "default_caption", "") or ""
+        pause_cap = float(getattr(vc, "max_pause_sec", 0.0) or 0.0)
+        if speed is not None and float(speed) > 0:
+            spd = float(speed)
+        else:
+            spd = float(getattr(vc, "speed", 1.0) or 1.0)
+
+        sentences = _split_sentences(text)
+        gap = float(getattr(tuning, "_gap_sec", 0.15) or 0.0)
+
+        parts = []
+        sr = None
+        for sent in sentences:
+            wav, sr = self._gen_core(sent, vc, clone_prompt, caption, pause_cap, spd)
+            parts.append(np.asarray(wav, dtype=np.float32))
+
+        if not parts or sr is None:
+            raise RuntimeError("no audio generated")
+
+        if gap > 0 and len(parts) > 1:
+            sil = np.zeros(int(gap * sr), dtype=np.float32)
+            merged = parts[0]
+            for p in parts[1:]:
+                merged = np.concatenate([merged, sil, p])
+        else:
+            merged = parts[0] if len(parts) == 1 else np.concatenate(parts)
+        return merged, sr
+
+    def speak(self, text: str, caption=None, cache=None):
         """テキストを文分割して順次生成・再生。キャンセル可能。
-        caption: この読み上げに限り使う感情caption (None=ボイス既定 default_caption)。"""
+        caption: この読み上げに限り使う感情caption (None=ボイス既定 default_caption)。
+        cache:   この読み上げに限るキャッシュON/OFF上書き (None=既定 cache_enabled に従う)。"""
         import soundfile as sf
 
         self._caption_override = caption
+        self._cache_override = cache
         self._cancel.clear()
         sentences = _split_sentences(text)
         print(f"[daemon] {len(sentences)} 文", flush=True)
 
-        OUTPUT_DIR.mkdir(exist_ok=True)
+        # 読み上げの使い捨てWAVは tmp_say/ へ(一括生成の output/ とは分離)。
+        # daemon起動時に掃除されるので増え続けない。
+        TMP_SAY_DIR.mkdir(exist_ok=True)
         ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
         gen_q: queue.Queue = queue.Queue()
@@ -252,9 +397,20 @@ class TTSWorker:
                     # 音量適用 (1.0未満なら波形を減衰)
                     if self.volume < 1.0:
                         wav = wav * float(self.volume)
-                    p = OUTPUT_DIR / f"noa_tts_{ts}_p{i+1:02d}.wav"
+                    p = TMP_SAY_DIR / f"noa_tts_{ts}_p{i+1:02d}.wav"
                     sf.write(str(p), wav, sr)
                     gen_q.put(p)
+                    # 1文ぶんの合成が完了 → GPU作業バッファを即破棄する。これをしないと
+                    # PyTorch が各文のキャッシュを抱えたまま reserved が文をまたいで
+                    # せり上がり、長文ほど高止まりする(実測 982→2786MB)。1文ごとに捨てれば
+                    # reserved は ~1.5GB で平らに保てる。次文は再確保するが合成は再生より
+                    # ずっと速い(RTF<<1)のでストリーミングは途切れない。
+                    try:
+                        import torch as _torch
+                        if _torch.cuda.is_available():
+                            _torch.cuda.empty_cache()
+                    except Exception:
+                        pass
                     print(f"[daemon] 生成 {i+1}/{len(sentences)}", flush=True)
                 except Exception as e:
                     print(f"[daemon] 生成失敗: {e}", flush=True)
@@ -288,6 +444,29 @@ class TTSWorker:
             self._player = None
 
         t.join()
+
+        # 感情caption で一時ロードされた VoiceDesign 第二モデル(~2GB)を解放する。
+        # これをしないと caption を一度使っただけで VD が居座り続け、アイドルでも
+        # 本体(int4 ~1.3GB)+VD で ~3.5GB のままになる。emoji 駆動の感情運用では
+        # VD を常駐させる必要がないので、読み上げ後に落として VRAM を返す。
+        try:
+            self._eng.release_vd()
+        except Exception:
+            pass
+
+        # 読み上げ完了 → アイドル。合成で積もった作業バッファ(CUDAアロケータの
+        # reserved 高水位 / Triton ワークスペース)を返す。合成中ではなくアイドル時に
+        # 呼ぶので体感速度に影響しない。次の合成は僅かに再確保コストがかかるが、
+        # reserved が際限なく肥大して /vram の noa がモデル本体(~1.2GB)より大きく
+        # 見える問題を抑える。
+        try:
+            import gc
+            import torch
+            if torch.cuda.is_available():
+                gc.collect()
+                torch.cuda.empty_cache()
+        except Exception:
+            pass
 
     def cancel(self):
         self._cancel.set()

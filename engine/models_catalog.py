@@ -31,6 +31,9 @@ def _verified_entries() -> list[ModelEntry]:
         entries.append(ModelEntry(
             IrodoriEngine.VOICEDESIGN_CHECKPOINT,
             "Irodori 600M v3 VoiceDesign", "irodori", "voicedesign", True))
+        entries.append(ModelEntry(
+            IrodoriEngine.LIGHT_CHECKPOINT,
+            "Irodori 500M v3 int4 (軽量・約1.5GB)", "irodori", "main", True))
     except Exception:
         pass
     try:

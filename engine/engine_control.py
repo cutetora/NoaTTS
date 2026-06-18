@@ -36,9 +36,8 @@ def mark_generating(state: bool):
     """生成中フラグの更新 (トレイアプリ・自動アンロード判定用)."""
     global is_generating, engine_loaded_at
     is_generating = state
-    if state:
-        import time as _t
-        engine_loaded_at = _t.time()
+    # 開始/終了どちらも「最後の活動時刻」として記録 (アイドル自動アンロードの基準)。
+    engine_loaded_at = time.time()
     # トレイアプリ向けに状態を書き出し
     try:
         _STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -63,6 +62,38 @@ def unload_engine_action():
     except Exception:
         pass
     return "✅ モデルを退避しました (VRAM解放)"
+
+
+_idle_watchdog_started = False
+
+
+def start_idle_unload_watchdog(poll_sec: float = 15.0):
+    """軽量モード時、UIエンジンが一定時間アイドルなら自動で退避するウォッチドッグ。
+    既存の is_generating / engine_loaded_at / unload_engine_action を使う。
+    cfg.lightweight_mode と cfg.ui_idle_unload_sec を毎回参照するので、UIトグルの
+    変更が即時に効く。多重起動はしない (アプリ起動時に1回だけ呼ぶ)。"""
+    global _idle_watchdog_started
+    if _idle_watchdog_started:
+        return
+    _idle_watchdog_started = True
+
+    def _watch():
+        while True:
+            time.sleep(poll_sec)
+            try:
+                idle_sec = int(getattr(cfg, "ui_idle_unload_sec", 0) or 0)
+                if not getattr(cfg, "lightweight_mode", False) or idle_sec <= 0:
+                    continue
+                if engine is None or is_generating:
+                    continue
+                if engine_loaded_at <= 0:
+                    continue
+                if (time.time() - engine_loaded_at) >= idle_sec:
+                    unload_engine_action()
+            except Exception:
+                pass
+
+    threading.Thread(target=_watch, daemon=True).start()
 
 
 # ── Activity Monitor ──
@@ -136,7 +167,7 @@ monitor = ActivityMonitor()
 
 def get_engine():
     """Return engine based on config.tts_engine_type (qwen3 or irodori)."""
-    global engine
+    global engine, engine_loaded_at
     if engine is None:
         if cfg.tts_engine_type == "irodori":
             from engine.irodori_engine import IrodoriEngine
@@ -147,6 +178,7 @@ def get_engine():
             )
         else:
             engine = TTSEngine(model_size=cfg.tts_model_size, device=cfg.tts_device)
+        engine_loaded_at = time.time()  # ロード時刻 = アイドル計測の起点
     return engine
 
 

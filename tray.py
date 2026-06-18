@@ -209,11 +209,12 @@ def open_tts_settings(icon=None, item=None):
     creationflags = 0
     if os.name == "nt":
         creationflags = subprocess.CREATE_NO_WINDOW  # type: ignore[attr-defined]
-    subprocess.Popen(
+    proc = subprocess.Popen(
         [PYTHON_EXE, str(TTS_API_WINDOW_SCRIPT)],
         cwd=str(ROOT),
         creationflags=creationflags,
     )
+    state["tts_window_proc"] = proc  # アプリ終了時に一緒に閉じるためハンドルを保持
 
 
 def open_tts_api_browser(icon=None, item=None):
@@ -294,13 +295,47 @@ def open_output_folder(icon=None, item=None):
     os.startfile(str(out))  # type: ignore[attr-defined]
 
 
+def _stop_daemon():
+    """読み上げ daemon(:7870) を停止する。HTTP /quit → 駄目なら PID kill。
+    アプリ終了時に呼び、サーバも一緒に止めて全部クリアにする。"""
+    if not port_open(TTS_API_PORT):
+        return
+    try:
+        import urllib.request
+        req = urllib.request.Request(TTS_API_URL + "/quit", data=b"", method="POST")
+        urllib.request.urlopen(req, timeout=5).read()
+    except Exception:
+        pass
+    # ポートが閉じるまで少し待つ
+    t0 = time.time()
+    while port_open(TTS_API_PORT) and time.time() - t0 < 5:
+        time.sleep(0.3)
+    # まだ生きていれば PID ファイルから kill
+    if port_open(TTS_API_PORT):
+        try:
+            import os
+            pid = int((ROOT / ".tts_daemon_pid").read_text(encoding="utf-8").strip())
+            os.kill(pid, 15)
+        except Exception:
+            pass
+
+
 def quit_app(icon=None, item=None):
     state["running"] = False
+    # 読み上げ daemon(:7870) も停止して全部クリアにする
+    _stop_daemon()
     # Gradioサブプロセス終了
     proc = state.get("gradio_proc")
     if proc is not None:
         try:
             proc.terminate()
+        except Exception:
+            pass
+    # 読み上げ設定ウィンドウ(tts_api_window)も開いていれば閉じる
+    win = state.get("tts_window_proc")
+    if win is not None:
+        try:
+            win.terminate()
         except Exception:
             pass
     if icon is not None:
@@ -465,6 +500,9 @@ def main():
 
     # Gradio起動
     state["gradio_proc"] = launch_gradio()
+    # 読み上げ daemon(noa) も起動する(「閉じる=全停止」と対称に、開く=全起動)。
+    # 既に起動済みなら何もしない(冪等)。バックグラウンドでモデルをロードする。
+    _start_daemon_if_needed()
 
     # トレイアイコン
     icon = pystray.Icon(

@@ -143,6 +143,55 @@ def use_selected_model(engine_type, repo_id):
     return f"使用モデルを設定しました: {repo_id} (次回生成時に再ロード){daemon_note}"
 
 
+# ── 軽量モード ⚡ ──────────────────────────────
+# モデルごとの VRAM 目安 (reserved 実測ベース)。読み上げ設定の「使用モデル」表示に使う。
+_MODEL_VRAM = {
+    "kizuna-intelligence/Irodori-TTS-500M-v3-int4": "約1.5GB (int4・軽量)",
+    "Aratako/Irodori-TTS-500M-v3": "約1.8GB (bf16・通常)",
+    "Aratako/Irodori-TTS-600M-v3-VoiceDesign": "約2.5GB (VoiceDesign)",
+}
+
+
+def _model_vram_md() -> str:
+    """使用モデルとVRAM目安の一覧 (現在使用中に印)。"""
+    from engine.irodori_engine import IrodoriEngine
+    cur = cfg.irodori_checkpoint or IrodoriEngine.DEFAULT_CHECKPOINT
+    lines = ["**使用モデルと VRAM 目安**", "", "| モデル | 目安VRAM |", "|---|---|"]
+    for repo, label in _MODEL_VRAM.items():
+        mark = " ◀ 使用中" if repo == cur else ""
+        lines.append(f"| `{repo.split('/')[-1]}` | {label}{mark} |")
+    mode = "⚡ ON (int4優先・アイドル自動解放)" if cfg.lightweight_mode else "OFF (通常bf16・常駐)"
+    lines.append("")
+    lines.append(f"軽量モード: **{mode}**")
+    return "\n".join(lines)
+
+
+def set_lightweight_mode(enabled: bool):
+    """軽量モード ON/OFF。ON=int4軽量モデル(約1.5GB)+アイドル自動解放、OFF=通常bf16。
+    使用モデルを切替え、UIエンジンを退避し、稼働中の読み上げdaemonにも反映する。"""
+    from engine.irodori_engine import IrodoriEngine
+    cfg.lightweight_mode = bool(enabled)
+    repo = IrodoriEngine.LIGHT_CHECKPOINT if enabled else IrodoriEngine.DEFAULT_CHECKPOINT
+    cfg.irodori_checkpoint = repo
+    cfg.save()
+    if ec.engine is not None:
+        ec.unload_engine_action()
+        ec.engine = None
+    daemon_note = ""
+    try:
+        import urllib.request
+        req = urllib.request.Request(
+            "http://127.0.0.1:7870/model", method="POST",
+            data=repo.encode("utf-8"),
+            headers={"Content-Type": "text/plain; charset=utf-8"})
+        urllib.request.urlopen(req, timeout=180)
+        daemon_note = " / 読み上げソフトにも反映"
+    except Exception:
+        daemon_note = " (読み上げは次回起動時に反映)"
+    state = "ON (int4・約1.5GB・アイドル自動解放)" if enabled else "OFF (通常bf16・約1.8GB)"
+    return f"⚡ 軽量モード {state}{daemon_note}", _model_vram_md()
+
+
 # ════════════════════════════════════════════
 # UI
 # ════════════════════════════════════════════
@@ -502,6 +551,22 @@ def build_ui():
             )
             set_language = gr.Dropdown(TTSEngine.LANGUAGES, value=cfg.default_language, label="デフォルト言語")
 
+            gr.Markdown("### ⚡ 軽量モード")
+            lw_toggle = gr.Checkbox(
+                value=cfg.lightweight_mode,
+                label="軽量モード (int4・約1.5GB / 生成していない間は自動でVRAM解放)",
+                info="ONでint4軽量モデルを使用し、アイドル時にUIのモデルを自動退避します(次回生成で自動再ロード)。"
+                     "読み上げソフト(daemon)の使用モデルも軽量に切替わります。",
+            )
+            lw_vram_md = gr.Markdown(_model_vram_md())
+            lw_status = gr.Textbox(label="軽量モード状態", interactive=False)
+
+            def _on_lw_toggle(v):
+                msg, md = set_lightweight_mode(v)
+                return md, msg
+
+            lw_toggle.change(_on_lw_toggle, inputs=[lw_toggle], outputs=[lw_vram_md, lw_status])
+
             gr.Markdown("### モデル管理")
             gr.Markdown(
                 "*現在のエンジンで使えるモデルの一覧・ダウンロード・使用切替。"
@@ -642,6 +707,8 @@ def build_ui():
 if __name__ == "__main__":
     # Start model preloading in background
     start_preload()
+    # 軽量モード時のアイドル自動アンロード監視を開始 (cfg.lightweight_mode を実行時参照)。
+    ec.start_idle_unload_watchdog()
     app = build_ui()
     _favicon = Path(__file__).parent / "assets" / "noa_icon.png"
     # queue() を有効化: 5シード探索/喜怒哀楽4種など数十秒かかる生成でも

@@ -113,6 +113,27 @@ class Api:
         return _http("/model", "POST", str(repo_id),
                      ctype="text/plain; charset=utf-8", timeout=180)
 
+    def set_lightweight(self, enabled):
+        """軽量モード(int4 軽量モデル ~1.5GB)の ON/OFF。settings.json に永続化し、
+        稼働中の daemon の使用モデルも即切り替える。OFF で通常 bf16 (500M v3) に戻す。"""
+        try:
+            from config import AppConfig
+            from engine.irodori_engine import IrodoriEngine
+            c = AppConfig.load()
+            repo = IrodoriEngine.LIGHT_CHECKPOINT if enabled else IrodoriEngine.DEFAULT_CHECKPOINT
+            c.lightweight_mode = bool(enabled)
+            c.irodori_checkpoint = repo
+            c.save()
+        except Exception as e:
+            return {"ok": False, "error": f"設定保存失敗: {e}"}
+        if port_open(API_PORT):
+            r = _http("/model", "POST", repo, ctype="text/plain; charset=utf-8", timeout=180)
+            r["lightweight"] = bool(enabled)
+            r["model"] = repo
+            return r
+        return {"ok": True, "lightweight": bool(enabled), "model": repo,
+                "note": "daemon停止中: 次回起動時に反映"}
+
     def start_daemon(self):
         """daemon 未起動なら起動し、HTTPが立つまで待つ。
         停止直後はポートが閉じきるまで待ってから起動する (残存ポートでの
@@ -277,6 +298,12 @@ HTML = r"""<!DOCTYPE html>
       <button class="b-stop" id="btnStop" onclick="stopD()">停止</button>
       <button class="b-sub" id="btnRestart" onclick="restartD()">再起動</button>
     </div>
+    <div class="row" style="margin-top:8px;">
+      <label style="display:flex;align-items:center;gap:8px;margin:0;cursor:pointer;font-size:13px;color:var(--ink);">
+        <input type="checkbox" id="lwChk" style="width:auto;accent-color:var(--accent);" onchange="setLightweight()">
+        ⚡ 軽量モード (int4・約1.5GB / VRAM節約)
+      </label>
+    </div>
     <div class="msg" id="dmsg"></div>
   </div>
 
@@ -362,7 +389,11 @@ async function refresh() {
     document.getElementById('btnStop').disabled=false;
     document.getElementById('speed').value=s.speed;
     document.getElementById('speedval').textContent=(+s.speed).toFixed(2);
-    if (s.model) { const ms=document.getElementById('model'); if(ms) ms.value=s.model; }
+    if (s.model) { const ms=document.getElementById('model');
+      if(ms){ if(![...ms.options].some(o=>o.value===s.model)){ const o=document.createElement('option');
+        o.value=s.model; o.textContent=s.model.split('/').pop(); ms.appendChild(o); } ms.value=s.model; } }
+    { const lw=document.getElementById('lwChk');
+      if(lw){ lw.checked = !!(s.model && s.model.indexOf('int4')>=0); lw.disabled=false; } }
     setAutoBtn(s.auto);
     ctrls.forEach(id=>document.getElementById(id).disabled=false);
     document.getElementById('btnAuto').disabled=false;
@@ -373,6 +404,7 @@ async function refresh() {
     document.getElementById('btnStop').disabled=true;
     ctrls.forEach(id=>document.getElementById(id).disabled=true);
     document.getElementById('btnAuto').disabled=true;
+    { const lw=document.getElementById('lwChk'); if(lw) lw.disabled=true; }
   }
   updateVram(s.running);
 }
@@ -430,6 +462,16 @@ async function setModel(){
   document.getElementById('model').disabled=false;
   m.textContent=r.ok?('モデル → '+id):('切替失敗: '+(r.error||''));
   refresh();
+}
+
+async function setLightweight(){
+  const on=document.getElementById('lwChk').checked;
+  const m=document.getElementById('mmsg');
+  m.textContent='⚡ 軽量モード切替中…(GPU再ロードで数十秒)';
+  document.getElementById('lwChk').disabled=true;
+  const r=await api.set_lightweight(on);
+  m.textContent=r.ok?('⚡ 軽量モード '+(on?'ON (int4・約1.5GB)':'OFF (通常bf16)')):('切替失敗: '+(r.error||''));
+  await loadModels(); await refresh();
 }
 
 function setAutoBtn(on){
