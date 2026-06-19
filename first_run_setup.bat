@@ -3,11 +3,14 @@ REM ============================================================
 REM  NoaTTS first-run setup (for THIN portable build)
 REM  Downloads heavy libraries (torch/CUDA, ~4GB) one time only.
 REM  CUDA build is auto-selected to match your GPU.
-REM  Called automatically by NoaTTS-Start.bat when torch is missing.
+REM  Called automatically by the launcher when torch is missing.
+REM  Lives in scripts\ ; cd to the app root (parent) so python\ resolves.
 REM ============================================================
 setlocal
 chcp 65001 >nul
 cd /d "%~dp0"
+REM if launched from scripts\, step up to the app root (where python\ is).
+if not exist "python\python.exe" if exist "..\python\python.exe" cd ..
 set "PPY=python\python.exe"
 
 echo.

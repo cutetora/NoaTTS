@@ -33,9 +33,12 @@ def _bundled_python(base: Path):
     return None
 
 
-def _has_torch(py_exe: Path) -> bool:
+def _deps_ready(py_exe: Path) -> bool:
+    """依存が揃っているか。torch だけでなく pystray も見る——torch は入った
+    のに requirements が途中で止まった『中途半端』状態を初回セットアップで
+    やり直させるため (pystray が無いと tray.py が即落ちする)。"""
     try:
-        r = subprocess.run([str(py_exe), "-c", "import torch"],
+        r = subprocess.run([str(py_exe), "-c", "import torch, pystray"],
                            cwd=str(py_exe.parent.parent),
                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
                            timeout=60)
@@ -45,12 +48,16 @@ def _has_torch(py_exe: Path) -> bool:
 
 
 def _run_first_setup(base: Path) -> bool:
-    """first_run_setup.bat を (コンソール表示で) 実行。成功で True。"""
-    setup = base / "first_run_setup.bat"
+    """first_run_setup.bat を (コンソール表示で) 実行。成功で True。
+    入口を分かりやすくするため bat は scripts\ に置く。旧構成(直下)も一応見る。"""
+    setup = base / "scripts" / "first_run_setup.bat"
+    if not setup.exists():
+        setup = base / "first_run_setup.bat"  # 後方互換
     if not setup.exists():
         return True  # THIN でなければ初回DLは不要 (開発環境など)
     try:
         # 進捗が見えるよう、ここはコンソールを出して実行する。
+        # bat 側は親(アプリルート)へ cd するので cwd は base のままでよい。
         r = subprocess.run(["cmd", "/c", str(setup)], cwd=str(base))
         return r.returncode == 0
     except Exception:
@@ -69,8 +76,8 @@ def main():
     bundled = _bundled_python(base)
     if bundled is not None:
         pyw, py = bundled
-        # torch 未導入なら初回セットアップ (失敗したら起動しない)。
-        if not _has_torch(py):
+        # 依存が未導入/中途半端なら初回セットアップ (失敗したら起動しない)。
+        if not _deps_ready(py):
             if not _run_first_setup(base):
                 return
         subprocess.Popen([str(pyw), str(tray)], cwd=str(base),

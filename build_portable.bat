@@ -58,14 +58,18 @@ echo [deps] installing requirements.txt ...
 if errorlevel 1 ( echo !!! dependency install failed. & pause & exit /b 1 )
 :skip_deps
 
-REM 3) copy the app (THIN also needs requirements.txt / first_run_setup.bat)
+REM 3) copy the app. Entry point = NoaTTS.exe (top level). Helper bats go
+REM    under scripts\ so users are not confused about which file to run.
 echo [copy] copying app files...
 for %%d in (assets batch conf daemon engine presets ui voice voices) do (
   if exist "%%d" xcopy /e /i /q /y "%%d" "%DIST%\%%d" >nul
 )
-for %%f in (app.py config.py detect_cuda.py download_models.py llm_provider.py noa_launcher.py noa_tts_daemon.py tray.py tts_api_window.py webview_window.py verify_portable.py first_run_setup.bat requirements.txt requirements-lite.txt README.md CHANGELOG.md NoaTTS.exe) do (
+for %%f in (app.py config.py detect_cuda.py download_models.py llm_provider.py noa_launcher.py noa_tts_daemon.py tray.py tts_api_window.py webview_window.py verify_portable.py requirements.txt requirements-lite.txt README.md CHANGELOG.md NoaTTS.exe) do (
   if exist "%%f" copy /y "%%f" "%DIST%\" >nul
 )
+REM helper bats live in scripts\ (not at the top level)
+mkdir "%DIST%\scripts" >nul 2>&1
+if exist first_run_setup.bat copy /y first_run_setup.bat "%DIST%\scripts\" >nul
 
 REM 3.5) FULL only: self-containment check (THIN skips it; torch not installed yet)
 if not "%MODE%"=="FULL" goto :skip_verify
@@ -76,13 +80,16 @@ if errorlevel 1 echo [verify] !!! may not be self-contained (see NG above). Chec
 echo.
 :skip_verify
 
-REM 4) generate launcher (runs first_run_setup if torch missing; aborts on setup failure)
-set "LAUNCH=%DIST%\NoaTTS-Start.bat"
+REM 4) generate the bat launcher under scripts\ (fallback / bat lovers).
+REM    The primary entry point is NoaTTS.exe at the top level.
+REM    Setup runs if deps are missing. We check BOTH torch AND pystray, because
+REM    a half-finished install (torch present but requirements not) must re-run.
+set "LAUNCH=%DIST%\scripts\NoaTTS-Start.bat"
 > "%LAUNCH%" echo @echo off
->>"%LAUNCH%" echo cd /d "%%~dp0"
->>"%LAUNCH%" echo "python\python.exe" -c "import torch" ^>nul 2^>^&1
+>>"%LAUNCH%" echo cd /d "%%~dp0.."
+>>"%LAUNCH%" echo "python\python.exe" -c "import torch, pystray" ^>nul 2^>^&1
 >>"%LAUNCH%" echo if errorlevel 1 (
->>"%LAUNCH%" echo   call first_run_setup.bat
+>>"%LAUNCH%" echo   call "scripts\first_run_setup.bat"
 >>"%LAUNCH%" echo   if errorlevel 1 exit /b 1
 >>"%LAUNCH%" echo ^)
 >>"%LAUNCH%" echo start "" "python\pythonw.exe" tray.py --welcome
