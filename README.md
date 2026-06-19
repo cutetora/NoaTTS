@@ -18,27 +18,27 @@
 
 ## 🔊 まずは聴いてみて（音声サンプル）
 
-> ▶ 下の波形をクリックすると、その場で再生できます（音が出ます）。
+> ▶ 下のプレイヤーで、その場で再生できます（音が出ます）。
 
 **🎀 女性ボイス「ノア」** — 明るく元気なサポート役
 
-https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/01_standard_noa.mp4
+<video src="https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/01_standard_noa.mp4" controls width="480"></video>
 
 **🧭 男性ボイス「man」** — 快活で皮肉屋な冒険家風
 
-https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/01_standard_male_man.mp4
+<video src="https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/01_standard_male_man.mp4" controls width="480"></video>
 
 **😊 感情表現（すべて同じ声！ 文中の絵文字で変わります）**
 
-https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/02_emotion_warai.mp4
+<video src="https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/02_emotion_warai.mp4" controls width="480"></video>
 
-https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/04_emotion_naki.mp4
+<video src="https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/04_emotion_naki.mp4" controls width="480"></video>
 
 **🎭 ボイスクローン** — 数秒の音声から声を再現（元の声 → 複製した声）
 
-https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/clone_before_tsukuyomi.mp4
+<video src="https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/clone_before_tsukuyomi.mp4" controls width="480"></video>
 
-https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/clone_after_1.mp4
+<video src="https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/clone_after_1.mp4" controls width="480"></video>
 
 > 📌 クローンの参照音声に「つくよみちゃんのサンプルボイス」を使用（ソフト紹介目的の掲載）。
 > 　使用素材：つくよみちゃんのサンプルボイス <https://tyc.rei-yumesaki.net/material/voice/sample-voice/>
