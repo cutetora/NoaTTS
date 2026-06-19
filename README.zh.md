@@ -31,6 +31,9 @@
 
 ![Voice Studio](assets/screenshots/voice-studio.png)
 
+> 保存前可调整 seed・语速・temperature 并试听。
+> ![音色微调](assets/screenshots/voice-tuning.png)
+
 ### 🥺 可以注入情感
 在句子中加入 **😭😠🥺** 等表情符号，**声音保持不变，只叠加情感**（Irodori）。
 哭泣、愤怒、含笑、低语、快速说话等。可以为角色台词添加表情。
@@ -41,11 +44,17 @@
 
 ![批量生成](assets/screenshots/batch-generate.png)
 
+> 生成后可逐行确认音频时长・声音质量检查・转写，仅对 NG 行重新生成。
+> ![生成结果与检查](assets/screenshots/batch-result.png)
+
 ### 🔔 让制作好的声音成为「常驻朗读员」
 常驻系统托盘，只要发送文本就会读出来。用于提示作业完成等通知很方便。
 也可以从其他应用或脚本调用（**[兼容 OpenAI TTS API](#http-api)**、完全本地运行／无需 API 密钥／面向进阶用户）。
 
 ![朗读设置](assets/screenshots/tts-settings.png)
+
+> 测试朗读・情感表情符号面板・API 用法都在此界面。
+> ![测试朗读与 API](assets/screenshots/tts-api.png)
 
 ### 🔊 音声样本（点击即可播放・下载）
 

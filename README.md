@@ -29,6 +29,9 @@
 
 ![Voice Studio](assets/screenshots/voice-studio.png)
 
+> 保存前に seed・話速・temperature を調整して試聴できます。
+> ![ボイス調整](assets/screenshots/voice-tuning.png)
+
 ### 🥺 感情を込められる
 文中に **😭😠🥺** などの絵文字を入れると、**声はそのままに感情が乗ります**（Irodori）。
 泣き・怒り・含み笑い・囁き・早口など。キャラのセリフに表情をつけられます。
@@ -39,11 +42,17 @@
 
 ![セリフ一括生成](assets/screenshots/batch-generate.png)
 
+> 生成後は1行ずつ音声長・声質チェック・書き起こしを確認、NG行だけ再生成できます。
+> ![生成結果とチェック](assets/screenshots/batch-result.png)
+
 ### 🔔 作った声を“常駐の読み上げ係”に
 システムトレイに常駐し、テキストを送るだけで読み上げ。作業完了の通知などに便利。
 他のアプリやスクリプトからも呼び出せます（**[OpenAI TTS API 互換](#http-api)**・ローカル完結／APIキー不要・くわしい人向け）。
 
 ![読み上げ設定ウィンドウ](assets/screenshots/tts-settings.png)
+
+> テスト読み上げ・感情絵文字パレット・API の使い方もこの画面から。
+> ![テスト読み上げとAPI](assets/screenshots/tts-api.png)
 
 ### 🔊 音声サンプル（クリックで再生・DL）
 

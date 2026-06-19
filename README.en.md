@@ -28,6 +28,9 @@ The tricky settings? The mascot "Noa" walks you through them right on screen.
 
 ![Voice Studio](assets/screenshots/voice-studio.png)
 
+> Tune seed / speed / temperature and preview before saving.
+> ![Voice tuning](assets/screenshots/voice-tuning.png)
+
 ### 🥺 Add emotion
 Drop emojis like **😭😠🥺** into your text, and **the emotion comes through while the voice stays the same** (Irodori).
 Crying, anger, a stifled chuckle, whispering, fast talking, and more. Give your characters' lines real expression.
@@ -38,11 +41,17 @@ Great for producing material for videos, games, voice dramas, and audio readings
 
 ![Batch generation](assets/screenshots/batch-generate.png)
 
+> After generating, check each line's duration / voice-quality / transcription and re-generate only the failed lines.
+> ![Results and checks](assets/screenshots/batch-result.png)
+
 ### 🔔 Make your voice a resident "read-aloud assistant"
 It stays resident in the system tray and reads aloud the moment you send it text. Handy for things like task-completion notifications.
 Other apps and scripts can call it too (**[OpenAI TTS API compatible](#http-api)** · fully local / no API key required · for advanced users).
 
 ![Read-aloud settings](assets/screenshots/tts-settings.png)
+
+> Test read-aloud, the emotion-emoji palette, and API usage are all on this screen.
+> ![Test read-aloud and API](assets/screenshots/tts-api.png)
 
 ### 🔊 Audio samples (click to play / download)
 
