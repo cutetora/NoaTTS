@@ -66,6 +66,16 @@ if errorlevel 1 (
   goto :fail
 )
 
+REM --- 4) pre-download the default TTS model (Irodori-TTS-500M) ---
+REM     Done now so the FIRST launch is instant (no model download on startup).
+REM     Non-fatal: if it fails, the app re-fetches the model on first launch.
+echo [3/3] Downloading the TTS model (Irodori-TTS-500M, a few GB) ...
+"%PPY%" download_models.py
+if errorlevel 1 (
+  echo [WARN] Model pre-download did not finish.
+  echo        Not fatal - NoaTTS will download it on first launch instead.
+)
+
 echo.
 echo === Setup complete. Launching NoaTTS... ===
 endlocal

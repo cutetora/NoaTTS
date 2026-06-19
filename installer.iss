@@ -20,7 +20,8 @@
 #define MyAppVersion "1.1.0"
 #define MyAppPublisher "cutetora"
 #define MyAppURL "https://github.com/cutetora/NoaTTS"
-#define MyAppExeName "NoaTTS-Start.bat"
+; Prefer the icon'd exe launcher; the bat is also installed as a fallback.
+#define MyAppExeName "NoaTTS.exe"
 #define MyPortableDir "dist\NoaTTS-portable"
 
 [Setup]
