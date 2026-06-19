@@ -1,20 +1,22 @@
 @echo off
 REM ============================================================
-REM  NoaTTS ポータブル版ビルダー
-REM  再配置可能(relocatable)な Python を取り込み、アプリ一式と共に
-REM  dist\NoaTTS-portable\ へまとめて ZIP 化する。
+REM  NoaTTS portable builder
+REM  Bundles a relocatable Python together with the app and
+REM  zips everything into dist\NoaTTS-portable\.
 REM
-REM  2モード:
-REM   - THIN(既定): torch/CUDA は同梱せず「初回起動時にDL」。配布物が薄い(~200MB)
-REM                 = GitHub Release にそのまま置ける。初回起動で CUDA 自動検出+導入。
-REM   - FULL      : torch/CUDA も同梱(~4-5GB)。オフラインで即動くが配布物が大きい。
+REM  Two modes:
+REM   - THIN (default): torch/CUDA NOT bundled; downloaded on first
+REM                     launch. Small (~200MB) = fits GitHub Releases.
+REM                     First launch auto-detects CUDA and installs.
+REM   - FULL          : torch/CUDA bundled (~4-5GB). Works offline,
+REM                     but the distributable is large.
 REM
-REM  使い方:   build_portable.bat                       (THIN・薄い配布物/推奨)
-REM            set FULL=1 ^& build_portable.bat          (FULL・全部同梱)
-REM            set CUDA_TAG=cu128 ^& set FULL=1 ^& build_portable.bat  (FULL時のCUDA指定)
+REM  Usage:   build_portable.bat                        (THIN / recommended)
+REM           set FULL=1 ^& build_portable.bat           (FULL / bundle all)
+REM           set CUDA_TAG=cu128 ^& set FULL=1 ^& build_portable.bat  (FULL CUDA pin)
 REM
-REM  注意: 通常の "python -m venv" コピーは非ポータブル(stdlib/tkinter が元Python依存)。
-REM        python-build-standalone の relocatable ビルドを使う。
+REM  Note: a plain "python -m venv" copy is NOT portable (stdlib/tkinter
+REM        depend on the base Python). We use python-build-standalone.
 REM ============================================================
 setlocal enabledelayedexpansion
 chcp 65001 >nul
@@ -26,38 +28,38 @@ set "PYDIR=%DIST%\python"
 set "MODE=THIN"
 if "%FULL%"=="1" set "MODE=FULL"
 
-REM relocatable Python (tkinter 同梱)。最新版URLは
-REM https://github.com/astral-sh/python-build-standalone/releases から更新可。
+REM relocatable Python (tkinter included). Update this URL from
+REM https://github.com/astral-sh/python-build-standalone/releases
 set "PBS_URL=https://github.com/astral-sh/python-build-standalone/releases/download/20250115/cpython-3.11.11+20250115-x86_64-pc-windows-msvc-install_only.tar.gz"
 
-echo === NoaTTS ポータブルビルド (MODE=%MODE% / CUDA=%CUDA_TAG%) ===
+echo === NoaTTS portable build (MODE=%MODE% / CUDA=%CUDA_TAG%) ===
 echo.
 
 if exist "%DIST%" rmdir /s /q "%DIST%"
 mkdir "%DIST%"
 
-REM 1) relocatable Python を取得・展開
-echo [python] relocatable Python を取得中...
+REM 1) fetch and extract relocatable Python
+echo [python] downloading relocatable Python...
 curl -L "%PBS_URL%" -o "%TEMP%\noatts_pbs.tar.gz"
-if errorlevel 1 ( echo !!! Python の取得に失敗。PBS_URL を最新に更新してください。 & pause & exit /b 1 )
+if errorlevel 1 ( echo !!! Failed to download Python. Update PBS_URL to the latest release. & pause & exit /b 1 )
 tar -xzf "%TEMP%\noatts_pbs.tar.gz" -C "%DIST%"
-if errorlevel 1 ( echo !!! 展開に失敗(tar が必要: Windows 10 以降は標準^)。 & pause & exit /b 1 )
+if errorlevel 1 ( echo !!! Extract failed (tar required: built into Windows 10+^). & pause & exit /b 1 )
 set "PPY=%PYDIR%\python.exe"
-if not exist "%PPY%" ( echo !!! 展開先が想定と異なります: %PPY% & pause & exit /b 1 )
+if not exist "%PPY%" ( echo !!! Unexpected layout: %PPY% not found & pause & exit /b 1 )
 "%PPY%" -m pip install --upgrade pip
 
-REM 2) FULL のみ torch + 依存を同梱 (THIN は初回起動時にDL)
+REM 2) FULL only: bundle torch + deps (THIN downloads them on first launch)
 if not "%MODE%"=="FULL" goto :skip_deps
-echo [torch] %CUDA_TAG% を導入中... (数GB)
+echo [torch] installing %CUDA_TAG% ... (several GB)
 "%PPY%" -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/%CUDA_TAG%
-if errorlevel 1 ( echo !!! torch 導入に失敗。 & pause & exit /b 1 )
-echo [deps] requirements.txt を導入中...
+if errorlevel 1 ( echo !!! torch install failed. & pause & exit /b 1 )
+echo [deps] installing requirements.txt ...
 "%PPY%" -m pip install -r requirements.txt
-if errorlevel 1 ( echo !!! 依存導入に失敗。 & pause & exit /b 1 )
+if errorlevel 1 ( echo !!! dependency install failed. & pause & exit /b 1 )
 :skip_deps
 
-REM 3) アプリ本体をコピー (THIN は requirements.txt / first_run_setup.bat も必須)
-echo [copy] アプリ一式をコピー...
+REM 3) copy the app (THIN also needs requirements.txt / first_run_setup.bat)
+echo [copy] copying app files...
 for %%d in (assets batch conf daemon engine presets ui voice voices) do (
   if exist "%%d" xcopy /e /i /q /y "%%d" "%DIST%\%%d" >nul
 )
@@ -65,16 +67,16 @@ for %%f in (app.py config.py detect_cuda.py download_models.py llm_provider.py n
   if exist "%%f" copy /y "%%f" "%DIST%\" >nul
 )
 
-REM 3.5) FULL のみ 自己完結チェック (THIN は torch 未導入のためスキップ)
+REM 3.5) FULL only: self-containment check (THIN skips it; torch not installed yet)
 if not "%MODE%"=="FULL" goto :skip_verify
 echo.
-echo [verify] ポータブル自己完結チェック...
+echo [verify] portable self-containment check...
 "%PPY%" "%DIST%\verify_portable.py"
-if errorlevel 1 echo [verify] !!! 自己完結していない可能性(上記NG)。配布前に要確認。
+if errorlevel 1 echo [verify] !!! may not be self-contained (see NG above). Check before shipping.
 echo.
 :skip_verify
 
-REM 4) 起動 bat を生成 (torch 未導入なら first_run_setup を呼ぶ。失敗時は起動しない)
+REM 4) generate launcher (runs first_run_setup if torch missing; aborts on setup failure)
 set "LAUNCH=%DIST%\NoaTTS-Start.bat"
 > "%LAUNCH%" echo @echo off
 >>"%LAUNCH%" echo cd /d "%%~dp0"
@@ -85,16 +87,16 @@ set "LAUNCH=%DIST%\NoaTTS-Start.bat"
 >>"%LAUNCH%" echo ^)
 >>"%LAUNCH%" echo start "" "python\pythonw.exe" tray.py --welcome
 
-REM 5) ZIP 化
-echo [zip] 圧縮中...
+REM 5) zip it
+echo [zip] compressing...
 powershell -NoProfile -Command "Compress-Archive -Path '%DIST%\*' -DestinationPath 'dist\NoaTTS-portable-%MODE%.zip' -Force"
 
 echo.
-echo === 完成 (%MODE%) ===
-echo   フォルダ : %DIST%
-echo   ZIP     : dist\NoaTTS-portable-%MODE%.zip
-if "%MODE%"=="THIN" echo   薄い配布物(~200MB)。初回起動時に torch(CUDA自動検出)+モデルをDLします。
-if "%MODE%"=="FULL" echo   torch 同梱(~4-5GB)。初回起動時はモデルのみDL。
-echo   ユーザーは展開して「NoaTTS-Start.bat」を実行するだけ。
+echo === Done (%MODE%) ===
+echo   Folder : %DIST%
+echo   ZIP    : dist\NoaTTS-portable-%MODE%.zip
+if "%MODE%"=="THIN" echo   THIN (~200MB). On first launch it downloads torch (auto-CUDA) + models.
+if "%MODE%"=="FULL" echo   FULL (~4-5GB, torch bundled). First launch downloads models only.
+echo   Users just extract and run NoaTTS-Start.bat.
 echo.
 pause
