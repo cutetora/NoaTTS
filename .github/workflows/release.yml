@@ -1,0 +1,68 @@
+name: Release (build portable + installer)
+
+# v*.*.* タグを push すると、THIN ポータブル ZIP と Inno インストーラ exe を
+# ビルドし、GitHub Release を作成して成果物を添付する(完全自動)。
+# Windows ランナーは GPU を持たないが、THIN ビルドは torch を同梱しない
+# (初回起動時にユーザー側でDL)ため GPU 不要で完走できる。
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:        # 手動実行も可(Actionsタブから)
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v1.2.0)'
+        required: true
+
+permissions:
+  contents: write           # Release 作成・アセット添付に必要
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve tag
+        id: tag
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Build portable (THIN) + installer
+        shell: cmd
+        env:
+          INNO: '1'           # Inno で NoaTTS-Setup.exe も生成
+        run: |
+          call build_portable.bat
+          if not exist "dist\NoaTTS-portable-THIN.zip" exit /b 1
+
+      - name: List artifacts
+        shell: bash
+        run: |
+          ls -la dist/ || true
+          ls -la Output/ || true
+
+      - name: Create GitHub Release and upload assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          ASSETS="dist/NoaTTS-portable-THIN.zip"
+          [ -f "Output/NoaTTS-Setup.exe" ] && ASSETS="$ASSETS Output/NoaTTS-Setup.exe"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" $ASSETS --clobber
+          else
+            gh release create "$TAG" $ASSETS \
+              --title "NoaTTS $TAG" \
+              --notes-file CHANGELOG.md
+          fi

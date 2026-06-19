@@ -124,4 +124,7 @@ if "%MODE%"=="THIN" echo   THIN (~200MB). On first launch it downloads torch (au
 if "%MODE%"=="FULL" echo   FULL (~4-5GB, torch bundled). First launch downloads models only.
 echo   Users just extract and run NoaTTS-Start.bat (or run the installer exe).
 echo.
+REM Skip the pause in CI / non-interactive runs (GitHub Actions sets CI=true).
+if not "%CI%"=="" goto :no_pause
 pause
+:no_pause
