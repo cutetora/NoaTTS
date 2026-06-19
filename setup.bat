@@ -8,6 +8,19 @@ setlocal enabledelayedexpansion
 chcp 65001 >nul
 cd /d "%~dp0"
 
+REM --- 0. NVIDIA GPU / driver check ----------------------------
+where nvidia-smi >nul 2>&1
+if not errorlevel 1 goto :gpu_ok
+echo.
+echo !!! NVIDIA GPU / driver not detected (nvidia-smi missing^).
+echo     NoaTTS requires an NVIDIA GPU with CUDA. CPU-only is not practical.
+echo     If you have an NVIDIA GPU, install the latest driver and run setup.bat again:
+echo     https://www.nvidia.com/Download/index.aspx
+pause
+exit /b 1
+:gpu_ok
+echo [GPU] NVIDIA detected
+
 set "PY_VER=3.11"
 set "VENV_DIR=venv"
 REM PyTorch for CUDA 12.8. Other CUDA: https://pytorch.org/get-started/locally/
@@ -73,6 +86,15 @@ set "VPY=%VENV_DIR%\Scripts\python.exe"
 REM --- 4. pip upgrade ------------------------------------------
 echo [pip] Upgrading ...
 "%VPY%" -m pip install --upgrade pip
+
+REM --- detect CUDA and auto-select TORCH_INDEX ----------------
+REM  GPU の対応 CUDA を nvidia-smi から検出し、合う PyTorch ホイールを選ぶ。
+REM  (検出失敗時は cu128 にフォールバック。手動で上書きしたい場合は上の TORCH_INDEX を編集)
+for /f "delims=" %%i in ('"%VPY%" detect_cuda.py 2^>nul') do set "CUDA_TAG=%%i"
+if "%CUDA_TAG%"=="" set "CUDA_TAG=cu128"
+if /I "%CUDA_TAG%"=="none" set "CUDA_TAG=cu128"
+set "TORCH_INDEX=https://download.pytorch.org/whl/%CUDA_TAG%"
+echo [PyTorch] Auto-detected CUDA tag: %CUDA_TAG%
 
 REM --- 5. PyTorch (CUDA) ---------------------------------------
 echo.

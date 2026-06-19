@@ -55,7 +55,7 @@
 
 - **エンジン（Qwen3 / Irodori）は同時に両方ロードされません。** 設定で切り替えて使うため、必要 VRAM は「いま使っているエンジン」で決まります（足し算ではありません）。
 - ストレージは PyTorch（数GB）＋モデルの内訳です。**Irodori 500M ≈ 2GB／Qwen3-TTS 1.7B ≈ 4GB**（使うモデルだけ落とせば節約できます）。
-- CUDA バージョンは GPU 世代に依存します（例: RTX 50 系 = cu128、それ以前 = cu121 など）。`setup.bat` の `TORCH_INDEX` で環境に合わせてください。
+- CUDA バージョンは GPU 世代に依存しますが、`setup.bat` が **自動検出**して合う PyTorch を入れます（手動で固定したい場合のみ `setup.bat` 内の `TORCH_INDEX` を編集）。
 
 ---
 
@@ -88,7 +88,7 @@
 4. `requirements.txt` の依存を導入
 5. **TTSモデルを事前ダウンロード**（数GB・数分。ここで落とすので初回起動が速い）
 
-> ⚠️ 自動なのは **winget が使えて、GPU が CUDA 12.8 系** の環境だけです。CUDA バージョンが違う場合は `setup.bat` 内の `TORCH_INDEX` を自分の環境に合わせて書き換えてください（`https://download.pytorch.org/whl/cu121` など）。winget が無い環境では、git / Python を手動で入れてから実行します。
+> ⚠️ `setup.bat` は **NVIDIA GPU を自動チェックし、GPU の CUDA バージョンも自動検出**して合う PyTorch を導入します（cu128 / cu124 / cu121 / cu118 を自動選択）。winget があれば git / Python も自動導入。winget が無い環境では、git / Python を手動で入れてから実行してください。
 
 終わったら `run_tray.bat`（または `NoaTTS.exe`）で起動します。`venv` があれば各 bat / exe は自動でそれを使います。モデルは setup 時に取得済みなので、起動後すぐ使えます。
 
