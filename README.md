@@ -61,22 +61,40 @@
 
 ## 入手
 
-どちらかの方法でプロジェクト一式を手に入れます。
+使い方に合わせて2通り。**ふつうに使いたいだけなら「ポータブル版」が圧倒的にラク**です。
 
-- **ZIP（git が無くてもOK・おすすめ）**: [**最新版をダウンロード**](https://github.com/cutetora/NoaTTS/releases/latest) → ページ下の **Assets** にある `Source code (zip)` を落として、好きな場所に展開する。バージョン管理された安定版です。
-  - （最新の開発版がほしい場合は、緑の「Code」→「Download ZIP」で main の最新を取得することもできます）
-- **git clone（git がある人）**:
+### A. ポータブル版（おすすめ・Python も CUDA も不要）
+
+[**最新リリースをダウンロード**](https://github.com/cutetora/NoaTTS/releases/latest) → **Assets** から落として使います。
+
+| 形式 | 手順 | 向き |
+|---|---|---|
+| **インストーラ** `NoaTTS-Setup.exe` | ダブルクリックでインストール → デスクトップの `NoaTTS` から起動 | 一番ふつう |
+| **ZIP** `NoaTTS-portable-THIN.zip` | 展開 → `NoaTTS.exe` をダブルクリック | 展開して使いたい人 |
+
+- **初回起動だけ**、GPU に合った PyTorch（CUDA 自動検出）と TTS モデルを**自動ダウンロード**します（数GB・数分、ネットが要ります）。2回目以降は即起動。
+- **必要なのは NVIDIA GPU＋最新ドライバだけ。** Python や CUDA Toolkit を自分で入れる必要はありません。
+- 初回セットアップが終わると、チュートリアル代わりに **Voice Studio（声作成UI）が自動で開きます**。
+
+> 軽量モード(int4)を使う場合のみ、配布物内で `python\python.exe -m pip install -r requirements-lite.txt` を実行してください（任意・Windows）。
+
+### B. ソースから（開発者向け・git + Python を自分で用意）
+
+- **ZIP**: 緑の「Code」→「Download ZIP」で main の最新を取得。
+- **git clone**:
   ```bash
   git clone https://github.com/cutetora/NoaTTS.git
   ```
 
-> どちらでも構いません。git が入っていなくても、後述の `setup.bat` が（winget があれば）git を自動で入れるので、最初は ZIP 取得で問題ありません。
+> こちらは下の「セットアップ」に従って Python 3.11 / PyTorch を自分で導入します。`setup.bat`（winget 環境）が git / Python も自動導入できます。
 
 ---
 
-## セットアップ
+## セットアップ（ソースから使う場合）
 
-> ⚠️ これは「ワンクリックで全部入る」アプリではありません。**Python 3.11 と CUDA 対応 PyTorch を自分で入れる前提**の構成です（PyTorch は環境の CUDA バージョンに依存するため自動化していません）。同梱の `NoaTTS.exe` も Python 環境を呼び出す軽量ランチャーで、依存が無い環境では動きません。
+> 💡 **ワンクリックで使いたいなら上の「A. ポータブル版」**（`NoaTTS-Setup.exe` / ZIP）を使ってください。Python も CUDA も不要です。
+>
+> 以下は **ソースから動かす開発者向け**の手順です。**Python 3.11 と CUDA 対応 PyTorch を自分で入れる前提**になります（PyTorch は環境の CUDA バージョンに依存するため、ポータブル版では初回起動時に自動導入しています）。
 
 ### かんたん: `setup.bat`（CUDA 12.8 / winget 環境向け）
 
@@ -264,7 +282,7 @@ assets/ docs/ voices/ presets/   素材・データ
 
 ## 更新履歴
 
-変更点は [CHANGELOG.md](CHANGELOG.md) を参照してください。最新版は **v1.1.0**（⚡軽量モード・VRAM大幅削減）。
+変更点は [CHANGELOG.md](CHANGELOG.md) を参照してください。最新版は **v1.2.0**（ワンクリック配布・ポータブル版）。
 
 ---
 

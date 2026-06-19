@@ -1,5 +1,21 @@
 # 更新履歴 (Changelog)
 
+## v1.2.0 — 2026-06-19
+
+### 📦 ワンクリック配布（ポータブル版）
+Python も CUDA も自分で入れずに、**展開／インストールするだけ**で使えるようになりました。
+
+- **ポータブルビルド** `build_portable.bat` — 再配置可能な Python を同梱し、ZIP を生成。
+  - **THIN（既定・約75MB）**: torch/CUDA は同梱せず、**初回起動時に GPU に合わせて自動DL**（CUDA 自動検出）。GitHub Releases にそのまま置けるサイズ。
+  - **FULL**（`set FULL=1`）: torch も同梱（オフライン向け）。
+- **インストーラ** `installer.iss`（Inno Setup）— `NoaTTS-Setup.exe` を生成。`{localappdata}` へ導入し管理者権限不要。`set INNO=1 & build_portable.bat` で自動コンパイル。
+- **初回セットアップ** — torch（CUDA自動検出）→ 依存 → **TTSモデル（Irodori-500M）まで先行ダウンロード**。2回目以降の起動が一瞬に。失敗時は原因別に案内し再実行可能。
+- **入口を一本化** — ユーザーが触る入口は `NoaTTS.exe` のみ。補助 bat は `scripts\` に格納し、取り違えを防止。
+- **リリース補助** `release.bat <tag>` — ビルド → 実機確認の確認 → 承認で GitHub Release 作成・成果物添付までを半自動化。
+- 軽量モード(int4)の依存は `requirements-lite.txt` に分離（使う人だけ導入）。未導入環境では通常モデルへ自動フォールバックし、起動エラーを防止。
+
+> 必要なのは **NVIDIA GPU＋最新ドライバ**だけ。Python / CUDA Toolkit の手動導入は不要です。
+
 ## v1.1.0 — 2026-06-19
 
 ### 🆕 新機能
