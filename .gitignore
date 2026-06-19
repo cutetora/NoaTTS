@@ -62,7 +62,7 @@ _tray_err.log
 # 親を voices/* で除外することで、!voices/noa の否定が効くようにする。
 voices/*
 !voices/noa/
-!voices/ネイサン/
+!voices/man/
 
 # ノアの声の試作WAV (中間生成物)
 _noa_*.wav
