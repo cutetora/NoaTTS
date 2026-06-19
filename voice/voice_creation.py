@@ -59,7 +59,9 @@ def test_saved_voice(voice_name, test_text, test_instruct):
             )
             (wav, sr), _ = results[0]
         elif vc.voice_type == "clone":
-            if not vc.ref_audio_path or not vc.ref_text:
+            # Irodori は ref_text を使わないので、参照音声さえあれば再生成できる。
+            _need_reftext = (cfg.tts_engine_type != "irodori")
+            if not vc.ref_audio_path or (_need_reftext and not vc.ref_text):
                 monitor.finish("クローンボイスはref_audioとref_textが必要です")
                 return None, "クローンボイスの参照データが不足しています"
             results = eng.generate_voice_clone(
@@ -167,7 +169,9 @@ def gen_voice_clone(ref_audio_path, ref_text, language, test_text, progress=gr.P
     try:
         if not ref_audio_path:
             return [], "参照音声をアップロードしてください"
-        if not ref_text or not ref_text.strip():
+        # Irodori は参照音声のみでクローンでき ref_text を内部で使わない。
+        # そのため Irodori 選択時は書き起こしを必須にしない (UIでも非表示)。
+        if cfg.tts_engine_type != "irodori" and (not ref_text or not ref_text.strip()):
             return [], "参照音声の書き起こしテキストを入力してください（必須）"
         eng = get_engine()
         monitor.start("ボイスクローン生成")
@@ -178,7 +182,7 @@ def gen_voice_clone(ref_audio_path, ref_text, language, test_text, progress=gr.P
         t0 = time.time()
         results = eng.generate_voice_clone(
             text=test_text, language=language,
-            ref_audio=ref_audio_path, ref_text=ref_text.strip(),
+            ref_audio=ref_audio_path, ref_text=(ref_text or "").strip(),
         )
         elapsed = time.time() - t0
         wav, sr = results[0]

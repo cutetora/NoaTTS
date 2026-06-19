@@ -214,7 +214,11 @@ def open_tts_settings(icon=None, item=None):
         cwd=str(ROOT),
         creationflags=creationflags,
     )
-    state["tts_window_proc"] = proc  # アプリ終了時に一緒に閉じるためハンドルを保持
+    # アプリ終了時に一緒に閉じるためハンドルを保持。
+    # 複数回開いても全部閉じられるようリストで溜める(終了済みは間引く)。
+    procs = state.setdefault("tts_window_procs", [])
+    procs[:] = [p for p in procs if p.poll() is None]
+    procs.append(proc)
 
 
 def open_tts_api_browser(icon=None, item=None):
@@ -331,15 +335,46 @@ def quit_app(icon=None, item=None):
             proc.terminate()
         except Exception:
             pass
-    # 読み上げ設定ウィンドウ(tts_api_window)も開いていれば閉じる
-    win = state.get("tts_window_proc")
-    if win is not None:
-        try:
-            win.terminate()
-        except Exception:
-            pass
+    # 読み上げ設定ウィンドウ(tts_api_window)も開いていれば全て閉じる。
+    # pywebview(EdgeChromium)は WebView2 を子プロセスとして spawn するため、
+    # 親 Python だけ terminate しても窓(WebView2)が孤児として残ることがある。
+    # Windows では taskkill /T でプロセスツリーごと確実に落とす。
+    _close_tts_windows()
     if icon is not None:
         icon.stop()
+
+
+def _close_tts_windows():
+    """開いている読み上げ設定ウィンドウを全て閉じる。
+    Windows は taskkill /T /F でプロセスツリー(WebView2子プロセス含む)ごと kill。
+    それ以外/失敗時は terminate にフォールバック。"""
+    procs = state.get("tts_window_procs") or []
+    # 後方互換: 旧キー(単数)が残っていれば拾う
+    legacy = state.get("tts_window_proc")
+    if legacy is not None:
+        procs = list(procs) + [legacy]
+    for p in procs:
+        if p is None or p.poll() is not None:
+            continue
+        killed = False
+        if os.name == "nt":
+            try:
+                subprocess.run(
+                    ["taskkill", "/T", "/F", "/PID", str(p.pid)],
+                    creationflags=subprocess.CREATE_NO_WINDOW,  # type: ignore[attr-defined]
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    timeout=5,
+                )
+                killed = True
+            except Exception:
+                killed = False
+        if not killed:
+            try:
+                p.terminate()
+            except Exception:
+                pass
+    state["tts_window_procs"] = []
+    state.pop("tts_window_proc", None)
 
 
 # TTSデーモン(:7870)の生存チェックのキャッシュ (毎フレーム叩くと重い)

@@ -235,7 +235,9 @@ class TTSEngine:
         clone_caption: str = "",
     ) -> tuple[np.ndarray, int]:
         """Generate audio for a single script row based on voice type."""
-        # clone_caption は Irodori VoiceDesign クローン専用。Qwen3 は無視。
+        # clone_caption は Irodori VoiceDesign クローン専用 (clone型では Qwen3 は無視)。
+        # ただし design 型では「同じ声(voice_description)のまま既定感情を重ねる」用途で
+        # instruct と同じく caption として後置する (Irodori engine と挙動を揃える)。
         if voice_type == "custom":
             results = self.generate_custom_voice(
                 text=text, language=language, speaker=speaker, instruct=instruct
@@ -243,8 +245,10 @@ class TTSEngine:
             return results[0]
         elif voice_type == "design":
             full_instruct = voice_description
-            if instruct:
-                full_instruct = f"{voice_description}。{instruct}"
+            # instruct (台本由来) と clone_caption (カード既定感情) を順に重ねる
+            for extra in (instruct, (clone_caption or "").strip()):
+                if extra:
+                    full_instruct = f"{full_instruct}。{extra}" if full_instruct else extra
             results = self.generate_voice_design(
                 text=text, language=language, instruct=full_instruct, seed=seed
             )

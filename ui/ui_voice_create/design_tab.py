@@ -32,6 +32,8 @@ def build_design_tab():
                 with gr.Row():
                     vd_save_idx = gr.Slider(1, 5, value=1, step=1, label="保存サンプル番号")
                     vd_save_name = gr.Textbox(label="キャラ名", placeholder="花子")
+                # 保存対象サンプルのseedを明示 (VoiceDesignは声=seed依存のため再現に必須)
+                vd_save_seed_info = gr.Markdown("*（サンプル未生成）*")
                 vd_save_attr = gr.Textbox(
                     label="キャラ属性 (一括生成で最優先される人物像)",
                     placeholder="明るく元気なお姉さん、ハキハキした話し方",
@@ -54,15 +56,32 @@ def build_design_tab():
             updates = []
             for i in range(5):
                 if i < len(audios):
-                    updates.append(gr.update(value=audios[i], visible=True))
+                    updates.append(gr.update(value=audios[i], visible=True,
+                                             label=f"サンプル {i+1} (seed={seeds[i]})"))
                 else:
-                    updates.append(gr.update(value=None, visible=i < 3))
-            return [audios, seeds, msg] + updates
+                    updates.append(gr.update(value=None, visible=i < 3,
+                                             label=f"サンプル {i+1}"))
+            seed_info = (f"**保存サンプル 1 → seed={seeds[0]}** （このseedがカードに保存され再現に使われます）"
+                         if seeds else "*（サンプル未生成）*")
+            return [audios, seeds, msg, seed_info] + updates
 
         vd_btn.click(
             _gen_design,
             inputs=[vd_lang, vd_desc, vd_text, vd_num],
-            outputs=[vd_audios, vd_seeds, vd_status] + vd_all_audios,
+            outputs=[vd_audios, vd_seeds, vd_status, vd_save_seed_info] + vd_all_audios,
+        )
+
+        def _show_save_seed(idx, seeds):
+            """保存サンプル番号を変えたら、そのサンプルのseedを表示する。"""
+            i = int(idx) - 1
+            if seeds and 0 <= i < len(seeds):
+                return f"**保存サンプル {int(idx)} → seed={seeds[i]}** （このseedがカードに保存され再現に使われます）"
+            return "*（そのサンプルは未生成）*"
+
+        vd_save_idx.change(
+            _show_save_seed,
+            inputs=[vd_save_idx, vd_seeds],
+            outputs=[vd_save_seed_info],
         )
 
         def _save_design(idx, name, audios, seeds, lang, desc, attr):

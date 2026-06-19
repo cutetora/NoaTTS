@@ -33,18 +33,19 @@ def _tune_refresh():
 
 def _tune_load(name):
     if not name:
-        return 0.5, -1, 1.0, 0.0, "ボイスを選択してください"
+        return 0.5, -1, 1.0, 0.0, "ボイスを選択してください", ""
     vc_cfg = vm.load_voice(name)
     temp = vc_cfg.clone_temperature if vc_cfg.clone_temperature > 0 else 0.5
     speed = getattr(vc_cfg, "speed", 1.0) or 1.0
     max_pause = getattr(vc_cfg, "max_pause_sec", 0.0) or 0.0
+    default_caption = getattr(vc_cfg, "default_caption", "") or ""
     if vc_cfg.voice_type != "clone":
         prompt_status = f"— ({vc_cfg.voice_type}ボイス。prompt/temperatureはクローン専用)"
     elif vc_cfg.clone_prompt_path and os.path.exists(vc_cfg.clone_prompt_path):
         prompt_status = "✅ キャッシュ済み"
     else:
         prompt_status = "❌ 未キャッシュ"
-    return temp, vc_cfg.seed, float(speed), float(max_pause), prompt_status
+    return temp, vc_cfg.seed, float(speed), float(max_pause), prompt_status, default_caption
 
 
 def _tune_extract_prompt(name):
@@ -320,15 +321,27 @@ def _tune_emotion_set(name, temp, seed, speed, max_pause, emotion_caption, sampl
             monitor.update(idx / max(n, 1), f"{idx+1}/{n}: {emo}")
             # 感情名を caption に。ユーザー指定があれば重ねる(声質指定など)
             cap = f"{emo}。{extra_cap}" if extra_cap else emo
-            results = eng.generate_voice_clone(
-                text=txt, language=vc_cfg.language,
-                ref_audio=vc_cfg.ref_audio_path, ref_text=vc_cfg.ref_text,
-                voice_clone_prompt=clone_prompt,
-                temperature=float(temp),
-                seed=int(seed),
-                clone_caption=cap,
-            )
-            wav, sr = results[0]
+            if vc_cfg.voice_type == "clone":
+                results = eng.generate_voice_clone(
+                    text=txt, language=vc_cfg.language,
+                    ref_audio=vc_cfg.ref_audio_path, ref_text=vc_cfg.ref_text,
+                    voice_clone_prompt=clone_prompt,
+                    temperature=float(temp),
+                    seed=int(seed),
+                    clone_caption=cap,
+                )
+                wav, sr = results[0]
+            else:
+                # design/custom は参照音声が無いので、声の説明(voice_description)+
+                # 感情caption で no_ref 合成する (generate_for_script_row が voice_type で振分け)。
+                wav, sr = eng.generate_for_script_row(
+                    voice_type=vc_cfg.voice_type,
+                    text=txt, language=vc_cfg.language,
+                    speaker=getattr(vc_cfg, "speaker", ""),
+                    voice_description=getattr(vc_cfg, "voice_description", ""),
+                    seed=int(seed),
+                    clone_caption=cap,
+                )
             wav = trim_silence(wav, sr)
             if float(max_pause) > 0:
                 wav = trim_interior_pauses(wav, sr, float(max_pause))
@@ -363,7 +376,7 @@ def _tune_emotion4b_test(name, temp, seed, speed, max_pause, emotion_caption="")
                              _EMOTION_SAMPLES2, "照れ驚き眠気クール4種")
 
 
-def _tune_save(name, temp, seed, speed, max_pause):
+def _tune_save(name, temp, seed, speed, max_pause, default_caption=""):
     if not name:
         return "ボイスを選択してください"
     try:
@@ -372,8 +385,11 @@ def _tune_save(name, temp, seed, speed, max_pause):
         vc_cfg.seed = int(seed)
         vc_cfg.speed = float(speed)
         vc_cfg.max_pause_sec = float(max_pause)
+        # 既定感情 (この声をこの感情で恒久的に読ませる)。design/clone で読み上げに反映。
+        vc_cfg.default_caption = (default_caption or "").strip()
         vm.save_voice(vc_cfg)
-        return f"'{name}' の設定を保存しました (temp={temp}, seed={int(seed)}, speed={float(speed)}x, max_pause={float(max_pause)}s)"
+        cap_msg = f", 既定感情「{vc_cfg.default_caption}」" if vc_cfg.default_caption else ""
+        return f"'{name}' の設定を保存しました (temp={temp}, seed={int(seed)}, speed={float(speed)}x, max_pause={float(max_pause)}s{cap_msg})"
     except Exception as e:
         return f"保存エラー: {e}"
 

@@ -38,25 +38,29 @@ ca68162 refactor: テストを tests/ へ集約
 6. **「使用モデルを変えても戻る」修正（VoiceDesign）** — `daemon/worker.py` の `switch_model`。VoiceDesign も読み上げ本体として恒久ロード・`_model_repo` 更新・`irodori_checkpoint` 保存。**実機検証済**（VD切替→health反映→caption無しsay成功→main復帰）。
    - 注意: 当初「VoiceDesignをselectから除外」する誤修正(b25fd86)をしたが、ユーザー指摘で revert(e803c06)。VoiceDesignは読み上げに使える（caption無しでも合成可能、実機確認済）。
 
-## 未完了タスク B（次にやること）
+## タスク B（完了 — 2026-06-16 次セッション）
 
 ユーザー依頼（原文）:
 > ボイスカードでクローンとボイスデザインで設計したやつをわかるようにして、ボイスデザインにはそれに追加して指示の声で同じ声で違う感情って感じでできる？
 
-分解:
-1. **ボイスカードで種別（クローン製/ボイスデザイン製）を見分けられるよう表示する**
-2. **ボイスデザインのカードに「同じ声で違う感情」を指定**（caption で感情を足し、声は同じまま感情だけ変える）
+ユーザー確定方針: **(1)** 種別はドロップダウンにアイコン表示 / **(2)** 「同じ声・違う感情」は1カードに既定感情1個（default_caption を保存）+ engine も直して読み上げ本体に反映。
 
-### 調査済みの土台（重要）
-`voice/voice_manager.py` の `VoiceConfig` に**必要なフィールドは既にある**:
-- `voice_type: str  # "custom", "design", "clone"` ← 種別はデータ上既に存在。UIで表示できているか要確認。
-- `default_caption: str = ""  # Irodori VoiceDesignクローンの既定感情/スタイル(caption)` ← 感情指定の土台も既にある。「空なら無し。デーモン読み上げ・バッチ生成でこの声の基底トーンとして使う」とコメントあり。
+### 実装内容（全コミット済み・実機検証済み）
+1. **B-1 種別アイコン** — `voice/voice_manager.py` の `get_voice_choices` ラベル先頭に種別アイコンを付与（🎨=design / 🎙=clone / 🔧=custom）。`_TYPE_ICON` dict。この関数を呼ぶ全ドロップダウンに一斉反映。
+2. **B-2 engine（重要な発見）** — `generate_for_script_row` の **design 経路が `clone_caption` を捨てていた**ため、UIで default_caption を保存しても読み上げに効かなかった。両エンジンを修正:
+   - `engine/irodori_engine.py`: `caption = f"{voice_description}。{clone_caption}"`（声=固定のまま感情を後置）。
+   - `engine/tts_engine.py`(Qwen3): design で instruct と clone_caption を順に重ねる（挙動を Irodori と統一）。
+   - daemon(`worker.py`)・batch(`generation.py`) は**元から** clone_caption=default_caption を渡していた（配線は正しく、engine だけが捨てていた）。
+3. **B-2 UI** — `ui/ui_voice_create/tuning_logic.py` `_tune_load`(6値目に default_caption 復元)・`_tune_save`(default_caption 引数追加で保存)。`tuning_panel.py` で `tune_emotion` 欄を「既定感情/指示(保存対象)」に改称、`_tune_load` の outputs と `_tune_save` の inputs に `tune_emotion` を追加。
 
-### 次にやる調査（タスクBの設計前）
-- `ui/ui_voice_create/tuning_panel.py` と `tuning_logic.py` で、保存済みボイスの一覧/調整UIに `voice_type` や `default_caption` を表示・編集する口があるか確認。
-- `engine/emotion_emoji.py`（EMOTION_EMOJI）が caption とどう関係するか。VoiceDesign の caption に感情絵文字 or 自由文を入れる設計か。
-- engine の `_synthesize(caption=...)`: 既に確認済 → `use_vd=bool(caption)` で caption ありなら VoiceDesign ランタイム使用（`engine/irodori_engine.py:157`）。
-- **設計をユーザーに提示してから実装すること**（このセッションは先走って確認過多になった反省）。
+### 検証結果（副作用なし）
+- 構文: 5ファイル py_compile OK（Python311）。
+- 合成ロジック: 感情なし=従来と完全同一（後方互換）、感情あり=`声の説明。感情`で重なる。
+- 実機: daemon を honoka(design)に切替→caption付き `/say` が生成・再生成功（修正前は無効だった経路が機能）。honoka config は無傷、daemon は noa に復帰済み。
+
+### 残課題・注意
+- **聴感確認はユーザー待ち**: design は seed 固定でも説明文が伸びると声質が多少揺れうる（VoiceDesign の性質上の限界）。「声そのまま感情だけ」が許容範囲か実際に聴いて確認すること。
+- UI（Gradio :7860）での保存→再選択でラベル復元、までは未起動確認。daemon 反映は `/voice` 再切替で `_load_voice_card` が再読込する経路（worker.py:131）。
 
 ## 環境メモ（ハマりポイント）
 

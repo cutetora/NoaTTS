@@ -18,6 +18,26 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 VOICES_DIR = str(BASE_DIR / "voices")
 OUTPUT_DIR = BASE_DIR / "output"
+# 音声キャッシュ(WAV使い回し)。同じ文+声+感情+速度なら合成をスキップして再生する。
+# 既定はOFF。/cache エンドポイント or cache.flag で切替。
+CACHE_DIR = BASE_DIR / "cache"
+CACHE_FLAG_PATH = BASE_DIR / "tts_cache.flag"  # 存在=ON / 無し=OFF (既定OFF)
+# 読み上げの使い捨て一時WAV置き場。一括生成の output/ とは分離する。
+# daemon起動時に中身を掃除して増え続けるのを防ぐ。
+TMP_SAY_DIR = BASE_DIR / "tmp_say"
+
+
+def cleanup_tmp_say():
+    """tmp_say/ の古い一時WAVを全削除する。daemon起動時に呼ぶ。"""
+    try:
+        if TMP_SAY_DIR.is_dir():
+            for f in TMP_SAY_DIR.glob("*.wav"):
+                try:
+                    f.unlink()
+                except Exception:
+                    pass
+    except Exception:
+        pass
 DEFAULT_VOICE = "noa"
 PIPE_NAME = r"\\.\pipe\noa_tts"
 HTTP_HOST = "127.0.0.1"
@@ -46,17 +66,18 @@ _speak_lock = threading.Lock()
 _current_speak_thread = None
 
 
-def dispatch_speak(worker, cleaned: str, caption=None):
+def dispatch_speak(worker, cleaned: str, caption=None, cache=None):
     """前の読み上げをキャンセルして新しいテキストの読み上げを開始する。
     pipe・ファイル監視・HTTP の全経路から呼ばれる共通入口。
-    caption: HTTP /say で指定された一時感情 (None=ボイス既定)。"""
+    caption: HTTP /say で指定された一時感情 (None=ボイス既定)。
+    cache:   HTTP /say で指定された一時キャッシュON/OFF (None=既定に従う)。"""
     global _current_speak_thread
     with _speak_lock:
         worker.cancel()
         prev = _current_speak_thread
         if prev is not None and prev.is_alive():
             prev.join(timeout=2.0)
-        t = threading.Thread(target=worker.speak, args=(cleaned, caption), daemon=True)
+        t = threading.Thread(target=worker.speak, args=(cleaned, caption, cache), daemon=True)
         _current_speak_thread = t
         t.start()
 

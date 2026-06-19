@@ -119,10 +119,14 @@ class VoiceManager:
     def get_voice_names(self) -> list[str]:
         return [v.name for v in self.list_voices()]
 
+    # ボイス種別を示す先頭アイコン (一覧で クローン製/デザイン製 を見分けるため)
+    _TYPE_ICON = {"design": "🎨", "clone": "🎙", "custom": "🔧"}
+
     def get_voice_choices(self, voice_type_filter: str | None = None) -> list[tuple[str, str]]:
         """
         Return [(display_label, name), ...] sorted by last_used_at desc.
-        display_label includes the timestamp if available.
+        display_label は 種別アイコン + 名前 + タイムスタンプ。
+        (🎨=VoiceDesign製 / 🎙=クローン製 / 🔧=custom)
         """
         voices = self.list_voices()
         if voice_type_filter:
@@ -131,10 +135,9 @@ class VoiceManager:
         voices.sort(key=lambda v: v.last_used_at or "0", reverse=True)
         result = []
         for v in voices:
-            if v.last_used_at:
-                label = f"{v.name}  ({v.last_used_at})"
-            else:
-                label = f"{v.name}  (未使用)"
+            icon = self._TYPE_ICON.get(v.voice_type, "🔧")
+            stamp = v.last_used_at if v.last_used_at else "未使用"
+            label = f"{icon} {v.name}  ({stamp})"
             result.append((label, v.name))
         return result
 

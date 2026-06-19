@@ -58,12 +58,13 @@ def build_tuning_panel():
                 for _emo, _label, _desc in EMOTION_EMOJI:
                     _b = gr.Button(f"{_emo} {_label}", variant="secondary", size="sm")
                     _emoji_btns.append((_b, _emo))
-            # 指示/感情(caption方式・補助): クローンでは caption、custom/designでは instruct。
-            # 絵文字より効きは弱いが、声質指定(高い声/低い声など)に使える。
+            # 指示/感情(caption方式): 試聴に使うと同時に「設定をカードに保存」で
+            # 既定感情(default_caption)として保存され、daemon読み上げ・バッチ生成に
+            # 恒久反映される (design/clone)。「同じ声のまま感情だけ変える」の指定欄。
             tune_emotion = gr.Textbox(
-                label="指示 / 感情 (任意・補助)",
-                placeholder="例: 高めの声で / 落ち着いた低い声で  (感情は上の絵文字の方が強く効きます)",
-                info="クローン(Irodori)では caption として声質を指定。感情演技は絵文字の方が明確に効きます",
+                label="既定感情 / 指示 (保存対象)",
+                placeholder="例: 落ち着いた低い声で / 嬉しそうに  (空なら感情指定なし)",
+                info="保存すると この声の既定感情になり、読み上げ本体に反映されます (design/clone)。感情演技は上の絵文字の方が強く効きます",
             )
             with gr.Row():
                 tune_test_btn = gr.Button("試聴", variant="primary")
@@ -108,7 +109,7 @@ def build_tuning_panel():
     tune_voice_dd.change(
         _tune_load,
         inputs=[tune_voice_dd],
-        outputs=[tune_temp, tune_seed, tune_speed, tune_max_pause, tune_prompt_status],
+        outputs=[tune_temp, tune_seed, tune_speed, tune_max_pause, tune_prompt_status, tune_emotion],
     )
     # ボイス選択で保存時サンプルと現在アイコンも連動 (旧ボイス一覧から統合)
     tune_voice_dd.change(preview_voice, inputs=[tune_voice_dd], outputs=[tune_preview])
@@ -171,7 +172,7 @@ def build_tuning_panel():
 
     tune_save_btn.click(
         _tune_save,
-        inputs=[tune_voice_dd, tune_temp, tune_seed, tune_speed, tune_max_pause],
+        inputs=[tune_voice_dd, tune_temp, tune_seed, tune_speed, tune_max_pause, tune_emotion],
         outputs=[tune_status],
     )
 
