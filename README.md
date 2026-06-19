@@ -1,3 +1,7 @@
+<div align="right">
+  <img src="https://count.getloli.com/get/@cutetora-noatts?theme=moebooru" alt="visitors" height="32">
+</div>
+
 # NoaTTS
 
 ローカルで動く日本語TTS（音声合成）アプリ。モデルをVRAMに常駐させて、テキストを投げると即座に読み上げる。声は「ボイスカード」として保存・切替でき、ボイスクローンにも対応する。
@@ -9,10 +13,6 @@
 - **感情絵文字スタイル制御**（Irodori） — 文中に 😭😠🥺 などを入れると、声を保ったまま感情が乗る
 - **セリフ一括生成** — 台本（CSV/Excel）を読み込み、キャラごとにボイスを割り当ててまとめて音声化
 - **タスクトレイ常駐** + Web UI（Gradio）でボイス作成・編集（マスコット「ノア」が使い方を案内）
-
-<p align="center">
-  <img src="https://count.getloli.com/get/@cutetora-noatts?theme=moebooru" alt="NoaTTS visitors counter">
-</p>
 
 ---
 
