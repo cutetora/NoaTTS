@@ -7,10 +7,26 @@
 # NoaTTS
 
 **A local Japanese TTS that lets your characters speak in the voice you choose.** Type some text, and it reads it aloud in the voice you created.
-**No internet required — everything runs entirely on your own PC** (Windows / NVIDIA GPU required).
+**Everything runs entirely on your own PC** (the generated audio is never sent anywhere).
 The tricky settings? The mascot "Noa" walks you through them right on screen.
 
 <p align="center"><img src="assets/mascot.png" alt="Mascot Noa" height="150"></p>
+
+> ✅ **30-second "can I use it?" check**: Does your PC have an **NVIDIA (GeForce / RTX) graphics card**?
+> If it does, it'll most likely run. If it doesn't (e.g. only the integrated graphics of a laptop), it unfortunately won't work.
+> **Windows** is recommended for the OS. **An internet connection is only needed for the first-time setup** (it runs offline after that).
+
+## 🔊 Hear it first (audio samples · click to play)
+
+| Sample | Description |
+|---|---|
+| 🎀 **Female · standard** | [Noa's voice](assets/screenshots/samples/01_standard_noa.mp3?raw=1) — a bright, cheerful support character |
+| 🧭 **Male · standard** | ["man" voice](assets/screenshots/samples/01_standard_male_man.mp3?raw=1) — a lively, sardonic adventurer type |
+| 😊 **Emotion (same voice!)** | [stifled chuckle](assets/screenshots/samples/02_emotion_warai.mp3?raw=1) · [anger](assets/screenshots/samples/03_emotion_okori.mp3?raw=1) · [crying](assets/screenshots/samples/04_emotion_naki.mp3?raw=1) · [trembling voice](assets/screenshots/samples/05_emotion_furue.mp3?raw=1) |
+| 🎭 **Voice cloning** | [original voice (Before)](assets/screenshots/samples/clone_before_tsukuyomi.mp3?raw=1) → [cloned voice (After)](assets/screenshots/samples/clone_after_1.mp3?raw=1) — reproduce a voice from a few seconds of audio |
+
+> 📌 The reference audio for cloning uses "Tsukuyomi-chan's sample voice" (included for the purpose of introducing the software).
+> 　Material used: Tsukuyomi-chan's sample voice <https://tyc.rei-yumesaki.net/material/voice/sample-voice/>
 
 ## What it can do
 
@@ -52,18 +68,6 @@ Other apps and scripts can call it too (**[OpenAI TTS API compatible](#http-api)
 
 > Test read-aloud, the emotion-emoji palette, and API usage are all on this screen.
 > ![Test read-aloud and API](assets/screenshots/tts-api.png)
-
-### 🔊 Audio samples (click to play / download)
-
-| Sample | Description |
-|---|---|
-| 🎀 **Female · standard** | [Noa's voice](assets/screenshots/samples/01_standard_noa.mp3?raw=1) — a bright, cheerful support character |
-| 🧭 **Male · standard** | ["man" voice](assets/screenshots/samples/01_standard_male_man.mp3?raw=1) — a lively, sardonic adventurer type |
-| 😊 **Emotion (same voice)** | [stifled chuckle](assets/screenshots/samples/02_emotion_warai.mp3?raw=1) · [anger](assets/screenshots/samples/03_emotion_okori.mp3?raw=1) · [crying](assets/screenshots/samples/04_emotion_naki.mp3?raw=1) · [trembling voice](assets/screenshots/samples/05_emotion_furue.mp3?raw=1) |
-| 🎭 **Voice cloning** | [original voice (Before)](assets/screenshots/samples/clone_before_tsukuyomi.mp3?raw=1) → [cloned voice (After)](assets/screenshots/samples/clone_after_1.mp3?raw=1) |
-
-> 📌 The reference audio for cloning uses "Tsukuyomi-chan's sample voice" (included for the purpose of introducing the software).
-> 　Material used: Tsukuyomi-chan's sample voice <https://tyc.rei-yumesaki.net/material/voice/sample-voice/>
 
 ---
 
@@ -239,6 +243,9 @@ While the daemon is running, opening `http://127.0.0.1:7870/` in a browser bring
 | `POST` | `/quit` | Shuts down the daemon |
 | `GET`  | `/health` | Operating status (JSON with voice, speech speed, each adjustment value, model, etc.) |
 | `GET`  | `/voices` | List of voices |
+
+> 🔧 **Output format**: The WAV returned by `/say_wav` is **24 kHz / mono / 16-bit PCM**. For `/v1/audio/speech`, you can choose `response_format` from `wav` / `mp3` / `flac` / `ogg` / `opus` / `aac` / `pcm` (all 24 kHz · mono-based).
+> The text field in a request is **`text` for the native API** and **`input` for the OpenAI-compatible one** (the `Authorization` header is not required, and is ignored if sent).
 
 In the `/say` JSON, besides `text`, you can specify `volume` (0.0–1.0), `caption` (overrides emotion for that read-aloud only, for Irodori cloning), and `cache` (true/false, overrides cache use for that call only).
 

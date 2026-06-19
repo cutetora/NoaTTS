@@ -7,10 +7,26 @@
 # NoaTTS
 
 **好きな声でキャラを喋らせる、ローカル日本語TTS。** テキストを入力すると、作った声で読み上げます。
-**ネット不要・あなたのPCの中だけ**で動きます（Windows / NVIDIA製グラボが必要）。
+動作は**あなたのPCの中だけで完結**します（生成した音声は外部に送られません）。
 むずかしい設定は、マスコット「ノア」が画面で案内してくれます。
 
 <p align="center"><img src="assets/mascot.png" alt="マスコット ノア" height="150"></p>
+
+> ✅ **使えるか30秒チェック**：お使いのPCに **NVIDIA（GeForce / RTX）のグラフィックボード**は付いていますか？
+> 付いていれば、たいてい動きます。付いていない（ノートPCの内蔵グラフィックのみ等）と、残念ながら動きません。
+> OSは **Windows** 推奨です。**初回の準備のときだけネット接続が必要**（以降はオフラインで動きます）。
+
+## 🔊 まずは聴いてみて（音声サンプル・クリックで再生）
+
+| サンプル | 内容 |
+|---|---|
+| 🎀 **女性・標準** | [ノアの声](assets/screenshots/samples/01_standard_noa.mp3?raw=1) — 明るく元気なサポート役 |
+| 🧭 **男性・標準** | [男性ボイス「man」](assets/screenshots/samples/01_standard_male_man.mp3?raw=1) — 快活で皮肉屋な冒険家風 |
+| 😊 **感情（同じ声で！）** | [含み笑い](assets/screenshots/samples/02_emotion_warai.mp3?raw=1)・[怒り](assets/screenshots/samples/03_emotion_okori.mp3?raw=1)・[泣き](assets/screenshots/samples/04_emotion_naki.mp3?raw=1)・[震え声](assets/screenshots/samples/05_emotion_furue.mp3?raw=1) |
+| 🎭 **ボイスクローン** | [元の声（Before）](assets/screenshots/samples/clone_before_tsukuyomi.mp3?raw=1) → [複製した声（After）](assets/screenshots/samples/clone_after_1.mp3?raw=1) — 数秒の音声から声を再現 |
+
+> 📌 クローンの参照音声に「つくよみちゃんのサンプルボイス」を使用（ソフト紹介目的の掲載）。
+> 　使用素材：つくよみちゃんのサンプルボイス <https://tyc.rei-yumesaki.net/material/voice/sample-voice/>
 
 ## できること
 
@@ -53,18 +69,6 @@
 
 > テスト読み上げ・感情絵文字パレット・API の使い方もこの画面から。
 > ![テスト読み上げとAPI](assets/screenshots/tts-api.png)
-
-### 🔊 音声サンプル（クリックで再生・DL）
-
-| サンプル | 内容 |
-|---|---|
-| 🎀 **女性・標準** | [ノアの声](assets/screenshots/samples/01_standard_noa.mp3?raw=1) — 明るく元気なサポート役 |
-| 🧭 **男性・標準** | [男性ボイス「man」](assets/screenshots/samples/01_standard_male_man.mp3?raw=1) — 快活で皮肉屋な冒険家風 |
-| 😊 **感情（同じ声で）** | [含み笑い](assets/screenshots/samples/02_emotion_warai.mp3?raw=1)・[怒り](assets/screenshots/samples/03_emotion_okori.mp3?raw=1)・[泣き](assets/screenshots/samples/04_emotion_naki.mp3?raw=1)・[震え声](assets/screenshots/samples/05_emotion_furue.mp3?raw=1) |
-| 🎭 **ボイスクローン** | [元の声（Before）](assets/screenshots/samples/clone_before_tsukuyomi.mp3?raw=1) → [複製した声（After）](assets/screenshots/samples/clone_after_1.mp3?raw=1) |
-
-> 📌 クローンの参照音声に「つくよみちゃんのサンプルボイス」を使用（ソフト紹介目的の掲載）。
-> 　使用素材：つくよみちゃんのサンプルボイス <https://tyc.rei-yumesaki.net/material/voice/sample-voice/>
 
 ---
 
@@ -241,6 +245,9 @@ python noa_tts_daemon.py --voice noa
 | `POST` | `/quit` | デーモンを終了 |
 | `GET`  | `/health` | 稼働状態（ボイス・話速・各調整値・モデル等のJSON） |
 | `GET`  | `/voices` | ボイス一覧 |
+
+> 🔧 **出力フォーマット**：`/say_wav` が返す WAV は **24 kHz / モノラル / 16-bit PCM** です。`/v1/audio/speech` は `response_format` で `wav` / `mp3` / `flac` / `ogg` / `opus` / `aac` / `pcm` を選べます（いずれも 24 kHz・モノラル系）。
+> リクエストのテキスト項目は、**独自APIは `text`**、**OpenAI互換は `input`** です（`Authorization` ヘッダは不要・送っても無視されます）。
 
 `/say` の JSON では `text` のほか、`volume`（0.0〜1.0）・`caption`（その読み上げに限り感情を上書き、Irodoriクローン用）・`cache`（true/false、その回だけキャッシュ利用を上書き）を指定できます。
 

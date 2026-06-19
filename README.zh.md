@@ -9,10 +9,26 @@
 # NoaTTS
 
 **用你喜欢的声音让角色开口说话的本地日语 TTS。** 输入文本，就能用你制作的声音读出来。
-**无需联网，仅在你自己的电脑上运行**（需要 Windows / NVIDIA 显卡）。
+**运行完全在你自己的电脑上完成**（生成的音频不会发送到外部）。
 复杂的设置，会由吉祥物「诺亚（Noa）」在画面上为你引导。
 
 <p align="center"><img src="assets/mascot.png" alt="吉祥物 诺亚" height="150"></p>
+
+> ✅ **30 秒「能否使用」自检**：你的电脑上是否配有 **NVIDIA（GeForce / RTX）显卡**？
+> 若有，多半能运行。若没有（例如仅有笔记本的集成显卡等），很遗憾将无法运行。
+> 操作系统推荐 **Windows**。**仅首次准备时需要联网**（此后可离线运行）。
+
+## 🔊 先听听看（音声样本・点击播放）
+
+| 样本 | 内容 |
+|---|---|
+| 🎀 **女声・标准** | [诺亚的声音](assets/screenshots/samples/01_standard_noa.mp3?raw=1) — 明朗活泼的辅助角色 |
+| 🧭 **男声・标准** | [男声「man」](assets/screenshots/samples/01_standard_male_man.mp3?raw=1) — 爽朗而爱挖苦的冒险家风格 |
+| 😊 **情感（用同一声音！）** | [含笑](assets/screenshots/samples/02_emotion_warai.mp3?raw=1)・[愤怒](assets/screenshots/samples/03_emotion_okori.mp3?raw=1)・[哭泣](assets/screenshots/samples/04_emotion_naki.mp3?raw=1)・[颤抖声](assets/screenshots/samples/05_emotion_furue.mp3?raw=1) |
+| 🎭 **语音克隆** | [原始声音（Before）](assets/screenshots/samples/clone_before_tsukuyomi.mp3?raw=1) → [复制的声音（After）](assets/screenshots/samples/clone_after_1.mp3?raw=1) — 用数秒的音频重现声音 |
+
+> 📌 克隆的参考音频使用了「月读酱（Tsukuyomi-chan）的样本语音」（以介绍软件为目的刊载）。
+> 　使用素材：月读酱的样本语音 <https://tyc.rei-yumesaki.net/material/voice/sample-voice/>
 
 ## 能做什么
 
@@ -55,18 +71,6 @@
 
 > 测试朗读・情感表情符号面板・API 用法都在此界面。
 > ![测试朗读与 API](assets/screenshots/tts-api.png)
-
-### 🔊 音声样本（点击即可播放・下载）
-
-| 样本 | 内容 |
-|---|---|
-| 🎀 **女声・标准** | [诺亚的声音](assets/screenshots/samples/01_standard_noa.mp3?raw=1) — 明朗活泼的辅助角色 |
-| 🧭 **男声・标准** | [男声「man」](assets/screenshots/samples/01_standard_male_man.mp3?raw=1) — 爽朗而爱挖苦的冒险家风格 |
-| 😊 **情感（用同一声音）** | [含笑](assets/screenshots/samples/02_emotion_warai.mp3?raw=1)・[愤怒](assets/screenshots/samples/03_emotion_okori.mp3?raw=1)・[哭泣](assets/screenshots/samples/04_emotion_naki.mp3?raw=1)・[颤抖声](assets/screenshots/samples/05_emotion_furue.mp3?raw=1) |
-| 🎭 **语音克隆** | [原始声音（Before）](assets/screenshots/samples/clone_before_tsukuyomi.mp3?raw=1) → [复制的声音（After）](assets/screenshots/samples/clone_after_1.mp3?raw=1) |
-
-> 📌 克隆的参考音频使用了「月读酱（Tsukuyomi-chan）的样本语音」（以介绍软件为目的刊载）。
-> 　使用素材：月读酱的样本语音 <https://tyc.rei-yumesaki.net/material/voice/sample-voice/>
 
 ---
 
@@ -243,6 +247,9 @@ python noa_tts_daemon.py --voice noa
 | `POST` | `/quit` | 结束守护进程 |
 | `GET`  | `/health` | 运行状态（声音・语速・各调整值・模型等的 JSON） |
 | `GET`  | `/voices` | 声音一览 |
+
+> 🔧 **输出格式**：`/say_wav` 返回的 WAV 为 **24 kHz / 单声道 / 16-bit PCM**。`/v1/audio/speech` 可通过 `response_format` 选择 `wav` / `mp3` / `flac` / `ogg` / `opus` / `aac` / `pcm`（均为 24 kHz・单声道系）。
+> 请求中的文本项，**独自 API 为 `text`**，**OpenAI 兼容为 `input`**（无需 `Authorization` 头・即使发送也会被忽略）。
 
 `/say` 的 JSON 中，除 `text` 外，还可指定 `volume`（0.0〜1.0）、`caption`（仅对该次读出覆盖情感，用于 Irodori 克隆）与 `cache`（true/false，仅对该次覆盖是否使用缓存）。
 
