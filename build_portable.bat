@@ -74,12 +74,15 @@ if errorlevel 1 echo [verify] !!! 自己完結していない可能性(上記NG)
 echo.
 :skip_verify
 
-REM 4) 起動 bat を生成 (torch 未導入なら first_run_setup を呼んでから起動)
-set "LAUNCH=%DIST%\NoaTTS起動.bat"
+REM 4) 起動 bat を生成 (torch 未導入なら first_run_setup を呼ぶ。失敗時は起動しない)
+set "LAUNCH=%DIST%\NoaTTS-Start.bat"
 > "%LAUNCH%" echo @echo off
 >>"%LAUNCH%" echo cd /d "%%~dp0"
 >>"%LAUNCH%" echo "python\python.exe" -c "import torch" ^>nul 2^>^&1
->>"%LAUNCH%" echo if errorlevel 1 call first_run_setup.bat
+>>"%LAUNCH%" echo if errorlevel 1 (
+>>"%LAUNCH%" echo   call first_run_setup.bat
+>>"%LAUNCH%" echo   if errorlevel 1 exit /b 1
+>>"%LAUNCH%" echo ^)
 >>"%LAUNCH%" echo start "" "python\pythonw.exe" tray.py --welcome
 
 REM 5) ZIP 化
@@ -92,6 +95,6 @@ echo   フォルダ : %DIST%
 echo   ZIP     : dist\NoaTTS-portable-%MODE%.zip
 if "%MODE%"=="THIN" echo   薄い配布物(~200MB)。初回起動時に torch(CUDA自動検出)+モデルをDLします。
 if "%MODE%"=="FULL" echo   torch 同梱(~4-5GB)。初回起動時はモデルのみDL。
-echo   ユーザーは展開して「NoaTTS起動.bat」を実行するだけ。
+echo   ユーザーは展開して「NoaTTS-Start.bat」を実行するだけ。
 echo.
 pause

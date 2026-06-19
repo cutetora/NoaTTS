@@ -36,7 +36,7 @@ set CUDA_TAG=cu128 & set FULL=1 & build_portable.bat
 
 生成物: `dist\NoaTTS-portable\`（展開済み）と `dist\NoaTTS-portable-<MODE>.zip`（配布用）。
 
-ユーザー手順は **「ZIP 展開 → `NoaTTS起動.bat` ダブルクリック」** だけ。THIN は初回起動時に
+ユーザー手順は **「ZIP 展開 → `NoaTTS-Start.bat` ダブルクリック」** だけ。THIN は初回起動時に
 必要なライブラリ(torch 等)を **GPU に合わせて自動DL/導入**し、続けて TTS モデルを取得する。
 
 ---
@@ -99,7 +99,7 @@ Name: "{commondesktop}\NoaTTS"; Filename: "{app}\python\pythonw.exe"; Parameters
 ## まとめ（最短ルート・THIN推奨）
 
 1. `build_portable.bat`（THIN既定）で **~200MB の ZIP** を作る
-2. 別Win機で「展開 → `NoaTTS起動.bat` → 初回DL → 1文読み上げ」まで動作確認
+2. 別Win機で「展開 → `NoaTTS-Start.bat` → 初回DL → 1文読み上げ」まで動作確認
 3. ZIP を **GitHub Release にそのまま添付**（200MB なので 2GB 上限内・外部ホスト不要）
-4. README に「DL → 展開 → `NoaTTS起動.bat` 実行（初回のみ自動DL）」を明記
+4. README に「DL → 展開 → `NoaTTS-Start.bat` 実行（初回のみ自動DL）」を明記
 5. 余裕があれば Inno Setup で `.exe` 化。完全オフライン版が要るなら `set FULL=1` で FULL ビルド（~4-5GB・配布は HF 経由）
