@@ -5,7 +5,7 @@ from pathlib import Path
 from daemon import runtime, tuning
 from .runtime import (
     PIPE_NAME, SAY_FILE, FLAG_PATH, VOICES_DIR, HTTP_HOST, HTTP_PORT,
-    DAEMON_PID_PATH, _stop_event, dispatch_speak, stop_speaking,
+    DAEMON_PID_PATH, CACHE_DIR, _stop_event, dispatch_speak, stop_speaking,
 )
 from .textproc import clean_text
 from .tuning import _set_gap, _set_nosplit, _set_firstcut
@@ -212,6 +212,17 @@ def http_server(worker):
             elif path == "/model":
                 self._json(200, {"ok": True,
                                  "model": getattr(worker, "_model_repo", None)})
+            elif path == "/cache":
+                # 音声キャッシュ(WAV使い回し)の現在状態と保存件数。
+                n = 0
+                try:
+                    if CACHE_DIR.is_dir():
+                        n = sum(1 for _ in CACHE_DIR.glob("*.wav"))
+                except Exception:
+                    pass
+                self._json(200, {"ok": True,
+                                 "enabled": worker.cache_enabled,
+                                 "files": n})
             else:
                 self._json(404, {"ok": False, "error": "not found"})
 
@@ -223,6 +234,29 @@ def http_server(worker):
             if path == "/stop":
                 stop_speaking(worker)
                 self._json(200, {"ok": True, "stopped": True})
+                return
+
+            if path == "/cache":
+                # 音声キャッシュ(WAV使い回し)の既定ON/OFF・クリア。
+                #   {"enabled": true/false}  既定のON/OFFを設定(cache.flagに永続化)
+                #   {"action": "clear"}      キャッシュ済みWAVを全削除
+                body = raw.decode("utf-8", errors="replace").strip()
+                try:
+                    obj = json.loads(body) if body else {}
+                except Exception:
+                    self._json(400, {"ok": False, "error": "invalid json"})
+                    return
+                if not isinstance(obj, dict):
+                    self._json(400, {"ok": False, "error": "invalid json"})
+                    return
+                resp = {"ok": True}
+                if str(obj.get("action", "")).lower() == "clear":
+                    resp["cleared"] = worker.clear_cache()
+                if "enabled" in obj:
+                    resp["enabled"] = worker.set_cache(obj.get("enabled"))
+                else:
+                    resp["enabled"] = worker.cache_enabled
+                self._json(200, resp)
                 return
 
             if path == "/voice":
@@ -391,6 +425,97 @@ def http_server(worker):
                 _th.Thread(target=_suicide, daemon=True).start()
                 return
 
+            if path == "/v1/audio/speech":
+                # OpenAI Text-to-Speech API 互換エンドポイント。既存の OpenAI-TTS
+                # クライアント(SDK/curl)から差し替えで使えるようにする。
+                # body: {"input": "...", "voice": "<ボイスカード名>", "speed": 1.0,
+                #        "response_format": "wav"|"pcm"} (model は無視)。
+                # response_format で出力形式を指定 (wav/pcm/mp3/flac/ogg/opus/aac)。
+                # 環境にエンコーダが無い形式は wav にフォールバックする。
+                from engine.audio_utils import to_audio_bytes
+                body = raw.decode("utf-8", errors="replace").strip()
+                try:
+                    obj = json.loads(body) if body else {}
+                except Exception:
+                    self._json(400, {"error": {"message": "invalid json"}})
+                    return
+                if not isinstance(obj, dict):
+                    self._json(400, {"error": {"message": "invalid json"}})
+                    return
+                text = str(obj.get("input", "") or "").strip()
+                voice = str(obj.get("voice", "") or "").strip() or None
+                speed = obj.get("speed", None)
+                fmt = str(obj.get("response_format", "") or "wav").lower()
+                if not text:
+                    self._json(400, {"error": {"message": "input is required"}})
+                    return
+                cleaned = clean_text(text)
+                if not cleaned:
+                    self._json(400, {"error": {"message": "nothing to speak after cleanup"}})
+                    return
+                # OpenAI の voice 名(alloy等)は NoaTTS には無いので、ボイスカードが
+                # 存在すればそれを使い、無ければアクティブボイスにフォールバック。
+                if voice and not (Path(VOICES_DIR) / voice / "config.json").exists():
+                    voice = None
+                try:
+                    wav, sr = worker.synthesize_wav(cleaned, voice=voice, speed=speed)
+                except Exception as e:
+                    self._json(500, {"error": {"message": f"synthesis failed: {e}"}})
+                    return
+                try:
+                    data, ctype = to_audio_bytes(wav, sr, fmt=fmt, target_sr=24000)
+                except Exception as e:
+                    self._json(500, {"error": {"message": f"encode failed: {e}"}})
+                    return
+                if not data:
+                    self._json(500, {"error": {"message": "empty audio"}})
+                    return
+                self._send(200, data, ctype=ctype)
+                print(f"[daemon] /v1/audio/speech 返却 ({len(cleaned)}字 / fmt={fmt})", flush=True)
+                return
+
+            if path == "/say_wav":
+                # 合成WAVを返す(鳴らさない)。みるくADV(Unity)等クライアント再生用。
+                # /say とは役割分離: 再生せず、24kHz/mono/16bit PCM のバイト列を同期返却。
+                # output/ 共有ファイルに依存せずメモリ生成 → 並行リクエストでも取り違えない。
+                from engine.audio_utils import to_wav_bytes
+                body = raw.decode("utf-8", errors="replace").strip()
+                try:
+                    obj = json.loads(body) if body else {}
+                except Exception:
+                    self._json(400, {"ok": False, "error": "invalid json"})
+                    return
+                if not isinstance(obj, dict):
+                    self._json(400, {"ok": False, "error": "invalid json"})
+                    return
+                text = str(obj.get("text", "") or "").strip()
+                voice = str(obj.get("voice", "") or "").strip() or None
+                speed = obj.get("speed", None)
+                if not text:
+                    self._json(400, {"ok": False, "error": "empty text"})
+                    return
+                cleaned = clean_text(text)
+                if not cleaned:
+                    self._json(400, {"ok": False, "error": "nothing to speak after cleanup"})
+                    return
+                # voice 指定があり実在しなければ 400 (GET /voices のIDのいずれか)
+                if voice and not (Path(VOICES_DIR) / voice / "config.json").exists():
+                    self._json(400, {"ok": False, "error": f"unknown voice: {voice}"})
+                    return
+                try:
+                    wav, sr = worker.synthesize_wav(cleaned, voice=voice, speed=speed)
+                    data = to_wav_bytes(wav, sr, target_sr=24000)
+                except Exception as e:
+                    self._json(500, {"ok": False, "error": f"synthesis failed: {e}"})
+                    return
+                # 失敗時に「200+0バイト」を返さない (Unity WavUtility が落ちるため)
+                if not data or len(data) <= 44:
+                    self._json(500, {"ok": False, "error": "empty audio"})
+                    return
+                print(f"[daemon] /say_wav 返却 ({len(cleaned)}字 / {len(data)}B)", flush=True)
+                self._send(200, data, ctype="audio/wav")
+                return
+
             if path != "/say":
                 self._json(404, {"ok": False, "error": "not found"})
                 return
@@ -398,6 +523,7 @@ def http_server(worker):
             body = raw.decode("utf-8", errors="replace").strip()
             text = body
             caption = None  # None=ボイスカードの default_caption に従う
+            cache = None    # None=既定のキャッシュON/OFFに従う / True/Falseでこの回だけ上書き
             ctype = (self.headers.get("Content-Type") or "").lower()
             if "application/json" in ctype:
                 try:
@@ -412,6 +538,9 @@ def http_server(worker):
                     # 感情caption (Irodoriクローン): この読み上げに限り上書き。
                     if "caption" in obj:
                         caption = str(obj.get("caption") or "").strip()
+                    # 音声キャッシュ(使い回し): この読み上げに限りON/OFF上書き。
+                    if "cache" in obj:
+                        cache = bool(obj.get("cache"))
                 except Exception:
                     self._json(400, {"ok": False, "error": "invalid json"})
                     return
@@ -430,7 +559,7 @@ def http_server(worker):
                 return
 
             print(f"[daemon] HTTP受信 ({len(cleaned)}字)", flush=True)
-            dispatch_speak(worker, cleaned, caption=caption)
+            dispatch_speak(worker, cleaned, caption=caption, cache=cache)
             self._json(200, {"ok": True, "chars": len(cleaned)})
 
     try:

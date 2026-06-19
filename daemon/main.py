@@ -6,7 +6,7 @@ import argparse
 import threading
 
 from daemon import tuning
-from .runtime import BASE_DIR, DEFAULT_VOICE, DAEMON_PID_PATH, _stop_event
+from .runtime import BASE_DIR, DEFAULT_VOICE, DAEMON_PID_PATH, _stop_event, cleanup_tmp_say
 from .tuning import _load_gap, _load_firstcut, _load_nosplit
 from .worker import TTSWorker
 from .servers import pipe_server, file_watcher, http_server
@@ -36,6 +36,10 @@ def main():
     _load_nosplit()  # nosplit.txt があれば分割しない閾値を復元
     print(f"[daemon] gap:{tuning._gap_sec}秒 firstcut:{tuning._first_cut}字 nosplit:{tuning._nosplit}字", flush=True)
 
+    # 読み上げの使い捨て一時WAV(tmp_say/)を掃除。増え続けるのを防ぐ。
+    cleanup_tmp_say()
+    print("[daemon] tmp_say/ を掃除しました", flush=True)
+
     worker = TTSWorker(args.voice)
 
     # ファイル監視を別スレッドで起動 (transcript非依存の読み上げ経路)
@@ -46,8 +50,18 @@ def main():
     hs = threading.Thread(target=http_server, args=(worker,), daemon=True)
     hs.start()
 
-    # pipe サーバーはメインスレッドで (既存の経路も残す)
-    pipe_server(worker)
+    # pipe サーバーはメインスレッドで起動 (named pipe は Windows 専用)。
+    # Mac/Linux では pipe を使わず、HTTP API / ファイル監視の経路だけで待受する
+    # (メインスレッドは停止イベントまでブロックして daemon を生かす)。
+    import os as _os
+    if _os.name == "nt":
+        pipe_server(worker)
+    else:
+        print("[daemon] named pipe は Windows のみ — HTTP/ファイル監視で待受します", flush=True)
+        try:
+            _stop_event.wait()
+        except KeyboardInterrupt:
+            pass
 
     try:
         DAEMON_PID_PATH.unlink()

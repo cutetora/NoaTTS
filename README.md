@@ -14,11 +14,17 @@
 - **セリフ一括生成** — 台本（CSV/Excel）を読み込み、キャラごとにボイスを割り当ててまとめて音声化
 - **タスクトレイ常駐** + Web UI（Gradio）でボイス作成・編集（マスコット「ノア」が使い方を案内）
 
+<p align="center"><img src="assets/mascot.png" alt="マスコット ノア" height="150"></p>
+
+<!-- TODO(スクショ): Voice Studio / 読み上げ設定ウィンドウ / セリフ一括生成 の画面キャプチャを
+     assets/screenshots/ に置いて、ここに ![](assets/screenshots/xxx.png) で追加してください。
+     操作の短い GIF があると更に伝わります。 -->
+
 ---
 
 ## 動作環境
 
-> Windows 専用（named pipe を使用）。GPU は NVIDIA + CUDA が前提です（CPU のみでの動作は実用的ではありません）。
+> Windows 推奨（開発・検証環境）。named pipe 経路は Windows のみですが、**HTTP API / ファイル監視の経路は Mac / Linux でも動く設計**です（v1.1.0〜・Mac/Linux は未検証）。GPU は NVIDIA + CUDA が前提です（CPU のみでの動作は実用的ではありません）。
 
 **最小スペック**（⚡軽量モードで読み上げするだけ）
 → Windows 10/11 (64bit) ／ NVIDIA GPU **VRAM 4GB**（実使用 約2.0GB）／ RAM 8GB ／ SSD 空き 10GB ／ Python 3.11 + CUDA対応 PyTorch
@@ -145,6 +151,8 @@ python noa_tts_daemon.py --voice noa
 | メソッド | パス | 説明 |
 |---|---|---|
 | `POST` | `/say` | 本文（プレーン or JSON）を読み上げ。トグルOFFでも必ず読む |
+| `POST` | `/say_wav` | 合成WAVを返す（再生しない）。クライアント側で再生したい時に |
+| `POST` | `/v1/audio/speech` | **OpenAI TTS API 互換**。既存の OpenAI-TTS クライアントから差し替えで使える |
 | `POST` | `/stop` | 読み上げを中断 |
 | `POST` | `/voice` | ボイス切替（`{"name": "..."}`） |
 | `POST` | `/speed` | 話速変更（`{"speed": 1.0}`） |
@@ -157,6 +165,16 @@ python noa_tts_daemon.py --voice noa
 | `GET`  | `/voices` | ボイス一覧 |
 
 `/say` の JSON では `text` のほか、`volume`（0.0〜1.0）と `caption`（その読み上げに限り感情を上書き、Irodoriクローン用）を指定できます。
+
+### OpenAI TTS API 互換（`/v1/audio/speech`）
+
+既存の OpenAI Text-to-Speech クライアントから、ベースURLを `http://127.0.0.1:7870/v1` に向けるだけで NoaTTS に差し替えできます。`voice` には NoaTTS のボイスカード名、`response_format` は **`wav` / `mp3` / `flac` / `ogg` / `opus` / `aac` / `pcm`** に対応（環境にエンコーダが無い形式は `wav` にフォールバック）。
+
+```bash
+curl http://127.0.0.1:7870/v1/audio/speech \
+  -H "Content-Type: application/json" \
+  -d '{"input":"こんにちは、ノアです","voice":"noa","response_format":"wav"}' --output out.wav
+```
 
 例:
 

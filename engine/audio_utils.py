@@ -1,9 +1,106 @@
+import io
 import numpy as np
 import librosa
 import soundfile as sf
 import requests
 import tempfile
 import os
+
+
+def to_wav_bytes(audio: np.ndarray, sr: int, target_sr: int = 24000) -> bytes:
+    """float波形を「24kHz / モノラル / 16bit リニアPCM」の WAV バイト列(RIFF...WAVE)にして返す。
+    /say_wav 等、クライアント側で再生するためにバイト列を返す用途。
+    fmt: AudioFormat=1(PCM), NumChannels=1, SampleRate=target_sr, BitsPerSample=16。"""
+    audio = np.asarray(audio, dtype=np.float32)
+    if audio.ndim > 1:                      # ステレオ等 → モノ化
+        audio = audio.mean(axis=1)
+    if sr != target_sr:                     # ネイティブ48k等 → 24kへリサンプル
+        audio = librosa.resample(audio, orig_sr=sr, target_sr=target_sr)
+    audio = np.clip(audio, -1.0, 1.0)
+    pcm16 = (audio * 32767.0).astype(np.int16)
+    buf = io.BytesIO()
+    sf.write(buf, pcm16, target_sr, format="WAV", subtype="PCM_16")
+    return buf.getvalue()
+
+
+# フォーマット → Content-Type
+_AUDIO_CTYPES = {
+    "wav": "audio/wav", "pcm": "audio/pcm", "mp3": "audio/mpeg",
+    "flac": "audio/flac", "ogg": "audio/ogg", "opus": "audio/opus",
+    "aac": "audio/aac",
+}
+
+
+def _ffmpeg_encode(audio_mono_f32: np.ndarray, sr: int, fmt: str):
+    """ffmpeg で指定フォーマットにエンコード (subprocess)。未インストール/失敗で None。
+    soundfile が直接出せない形式 (opus/aac 等) のフォールバック用。"""
+    import shutil
+    import subprocess
+    if shutil.which("ffmpeg") is None:
+        return None
+    pcm16 = (np.clip(audio_mono_f32, -1.0, 1.0) * 32767.0).astype(np.int16)
+    wbuf = io.BytesIO()
+    sf.write(wbuf, pcm16, sr, format="WAV", subtype="PCM_16")
+    ff_fmt = {"mp3": "mp3", "opus": "opus", "aac": "adts", "ogg": "ogg",
+              "flac": "flac", "wav": "wav"}.get(fmt, fmt)
+    flags = 0x08000000 if os.name == "nt" else 0  # CREATE_NO_WINDOW
+    try:
+        p = subprocess.run(
+            ["ffmpeg", "-hide_banner", "-loglevel", "error",
+             "-f", "wav", "-i", "pipe:0", "-f", ff_fmt, "pipe:1"],
+            input=wbuf.getvalue(), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            creationflags=flags)
+        return p.stdout if (p.returncode == 0 and p.stdout) else None
+    except Exception:
+        return None
+
+
+def to_audio_bytes(audio: np.ndarray, sr: int, fmt: str = "wav",
+                   target_sr: int = 24000):
+    """波形を指定フォーマットのバイト列にして (bytes, content_type) を返す。
+    対応: wav / pcm / flac / ogg / mp3 (soundfile)、opus / aac 等は ffmpeg。
+    その形式を出せない環境では wav にフォールバックする。"""
+    fmt = (fmt or "wav").lower().strip()
+    a = np.asarray(audio, dtype=np.float32)
+    if a.ndim > 1:
+        a = a.mean(axis=1)
+    if sr != target_sr:
+        a = librosa.resample(a, orig_sr=sr, target_sr=target_sr)
+    a = np.clip(a, -1.0, 1.0)
+    ctype = _AUDIO_CTYPES.get(fmt, "application/octet-stream")
+
+    if fmt == "pcm":  # raw PCM 16bit LE mono
+        return (a * 32767.0).astype("<i2").tobytes(), "audio/pcm"
+
+    # soundfile が直接書ける形式
+    sf_fmt = {"wav": "WAV", "flac": "FLAC", "ogg": "OGG", "mp3": "MP3",
+              "opus": "OGG"}.get(fmt)
+    try:
+        avail = sf.available_formats()
+    except Exception:
+        avail = {}
+    if sf_fmt and sf_fmt in avail:
+        try:
+            buf = io.BytesIO()
+            if fmt == "wav":
+                sf.write(buf, (a * 32767.0).astype(np.int16), target_sr,
+                         format="WAV", subtype="PCM_16")
+            elif fmt == "opus":
+                sf.write(buf, a, target_sr, format="OGG", subtype="OPUS")
+            else:
+                sf.write(buf, a, target_sr, format=sf_fmt)
+            return buf.getvalue(), ctype
+        except Exception:
+            pass
+
+    data = _ffmpeg_encode(a, target_sr, fmt)  # opus/aac 等のフォールバック
+    if data:
+        return data, ctype
+
+    buf = io.BytesIO()  # 最終フォールバック: wav
+    sf.write(buf, (a * 32767.0).astype(np.int16), target_sr,
+             format="WAV", subtype="PCM_16")
+    return buf.getvalue(), "audio/wav"
 
 
 def adjust_speed(audio: np.ndarray, sr: int, speed: float = 1.0) -> np.ndarray:
