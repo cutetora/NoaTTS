@@ -1,3 +1,6 @@
+
+
+
 <div align="left">
   <img src="https://count.getloli.com/get/@cutetora-noatts?theme=moebooru" alt="visitors" height="32">
 </div>
@@ -19,6 +22,7 @@
 ## 🔊 まずは聴いてみて（音声サンプル）
 
 **🎀 女性ボイス「ノア」** — 明るく元気なサポート役（▶ で再生）
+https://github.com/user-attachments/assets/a0c556e4-ef7d-4d99-a997-6905e4ffd74f
 
 <!-- DROP-NOA-MP4-HERE -->
 
