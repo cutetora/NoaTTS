@@ -23,6 +23,8 @@ The tricky settings? The mascot "Noa" walks you through them right on screen.
 
 > Voices you create are saved as "voice cards" and can be switched anytime.
 > (See the [License](#license) for notes on commercial use and cloning.)
+>
+> 🛠 Features that help you create: even if the reference audio has BGM, **BGM removal (Demucs)** extracts the vocals / before saving, you can pick a good voice via a **5-seed comparison** and **audition it with joy/anger/sorrow/fun** to check how the emotion rides.
 
 ### 🥺 Add emotion
 Drop emojis like **😭😠🥺** into your text, and **the emotion comes through while the voice stays the same** (Irodori).
@@ -219,11 +221,17 @@ While the daemon is running, opening `http://127.0.0.1:7870/` in a browser bring
 | `POST` | `/nosplit` | Don't split sentences at or below this character count. Persisted to `nosplit.txt` |
 | `POST` | `/firstcut` | Target character count for early cutoff of the first sentence (0 to disable). Persisted to `firstcut.txt` |
 | `POST` | `/pause` | Cap on in-audio pauses (seconds, 0 for no processing). Persisted to `pause.txt` |
+| `GET`·`POST` | `/model` | Query / switch the model in use |
+| `GET`·`POST` | `/cache` | Query the audio cache / turn it on/off / clear it (`{"action":"clear"}`) |
+| `POST` | `/toggle` | Toggle automatic read-aloud (`tts_auto.flag`) |
+| `GET`  | `/vram` | VRAM usage status (total / NoaTTS / free) |
 | `POST` | `/quit` | Shuts down the daemon |
 | `GET`  | `/health` | Operating status (JSON with voice, speech speed, each adjustment value, model, etc.) |
 | `GET`  | `/voices` | List of voices |
 
-In the `/say` JSON, besides `text`, you can specify `volume` (0.0–1.0) and `caption` (overrides emotion for that read-aloud only, for Irodori cloning).
+In the `/say` JSON, besides `text`, you can specify `volume` (0.0–1.0), `caption` (overrides emotion for that read-aloud only, for Irodori cloning), and `cache` (true/false, overrides cache use for that call only).
+
+> 💾 **Audio cache**: The same combination of "text + voice + speech speed + emotion" reuses an already-synthesized WAV and returns instantly. Enable it with `tts_cache.flag` or `POST /cache {"enabled":true}`.
 
 ### OpenAI TTS API compatible (`/v1/audio/speech`)
 
@@ -288,6 +296,12 @@ Script columns (any order · auto-recognized by header name):
 | `Emotion` | | Joy / anger / sorrow / fun, etc. (optional) |
 | `Qwen3 TTS system prompt` | | Instructions for the manner of speaking and tone (optional) |
 | `Recommended` | | Put `★` to mark it as a candidate. The count is tallied on load |
+
+### Automatic post-generation check (bonus feature)
+
+It **matches the lines with Whisper** against the generated audio and also checks the **voice's gender (F0)**. Lines that fail are automatically **retried up to 3 times** with adjusted instructions. It also supports generating **only `★` rows**, a ⚠️ warning when a single line is too long, per-line regeneration, and an NG report (`ng_report.txt` / Excel export of the failing rows).
+
+> ⚠️ **This check is not perfect.** Whisper's transcription and the F0 judgment can be wrong — it may flag correct audio as NG, or vice versa. **Use it only as a rough guide** and confirm the final selection with your ears.
 
 ---
 

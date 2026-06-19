@@ -23,6 +23,9 @@
 
 > 制作好的声音可作为「声卡（Voice Card）」保存与切换。
 > （商用与克隆的注意事项请参阅[许可证](#许可证)）
+>
+> 🛠 辅助制作的功能：即使参考音频中带有 BGM，也可通过 **BGM 去除（Demucs）** 提取人声／
+> 保存前可通过 **5 个 seed 对比**挑选好声音，并以**喜怒哀乐试听**来确认情感的呈现。
 
 ### 🥺 可以注入情感
 在句子中加入 **😭😠🥺** 等表情符号，**声音保持不变，只叠加情感**（Irodori）。
@@ -220,11 +223,17 @@ python noa_tts_daemon.py --voice noa
 | `POST` | `/nosplit` | 字数不超过此值则不进行分句。持久化到 `nosplit.txt` |
 | `POST` | `/firstcut` | 第 1 句的提前截断目标字数（0 为禁用）。持久化到 `firstcut.txt` |
 | `POST` | `/pause` | 音频内停顿上限（秒，0 为不加工）。持久化到 `pause.txt` |
+| `GET`·`POST` | `/model` | 查询／切换所使用的模型 |
+| `GET`·`POST` | `/cache` | 查询音频缓存／开关 ON/OFF／清除（`{"action":"clear"}`） |
+| `POST` | `/toggle` | 切换自动读出（`tts_auto.flag`） |
+| `GET`  | `/vram` | VRAM 使用状况（整体／NoaTTS／空闲） |
 | `POST` | `/quit` | 结束守护进程 |
 | `GET`  | `/health` | 运行状态（声音・语速・各调整值・模型等的 JSON） |
 | `GET`  | `/voices` | 声音一览 |
 
-`/say` 的 JSON 中，除 `text` 外，还可指定 `volume`（0.0〜1.0）与 `caption`（仅对该次读出覆盖情感，用于 Irodori 克隆）。
+`/say` 的 JSON 中，除 `text` 外，还可指定 `volume`（0.0〜1.0）、`caption`（仅对该次读出覆盖情感，用于 Irodori 克隆）与 `cache`（true/false，仅对该次覆盖是否使用缓存）。
+
+> 💾 **音频缓存**：相同的「文本 ＋ 声音 ＋ 语速 ＋ 情感」组合，会复用已合成的 WAV 并即时返回。可通过 `tts_cache.flag` 或 `POST /cache {"enabled":true}` 启用。
 
 ### 兼容 OpenAI TTS API（`/v1/audio/speech`）
 
@@ -290,6 +299,16 @@ curl -X POST http://127.0.0.1:7870/say -H "Content-Type: application/json" \
 | `感情`（情感） | | 喜 / 怒 / 哀 / 楽 等（可选） |
 | `Qwen3TTSシステムプロンプト`（Qwen3TTS 系统提示词） | | 说话方式・口吻的指示（可选） |
 | `おすすめ`（推荐） | | 填入 `★` 作为采用候选标记。加载时会统计件数 |
+
+### 生成后的自动检查（附加功能）
+
+会用 **Whisper 对台词进行比对**，并检查**声音的性别（F0）**。判定为 NG 的行会
+调整指示后**最多自动重试 3 次**。也支持**仅生成 `★` 行**、单行过长时的 ⚠️ 警告、
+逐行重新生成、以及 NG 报告（`ng_report.txt`／NG 行的 Excel 导出）。
+
+> ⚠️ **此检查并不完善。** Whisper 的听写与 F0 判定也会出错，
+> 可能将正确的音频误判为 NG，反之亦然。**请仅作为参考标准**使用，
+> 最终的采用与否请用耳朵确认。
 
 ---
 
