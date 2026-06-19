@@ -391,7 +391,3 @@ assets/ docs/ voices/ presets/   素材・データ
 - **Qwen3-TTS** — 各提供元（[Qwen3-TTS-streaming](https://github.com/dffdeeq/Qwen3-TTS-streaming) / [Qwen 公式](https://huggingface.co/Qwen)）のライセンスをご確認ください。
 
 > ⚠️ 最終的な利用可否（商用を含む）は、使用するモデル・参照したクローン元の音声・各依存コンポーネントのライセンスを **ご自身で確認のうえ判断してください**。本プロジェクトはこれらの利用結果について責任を負いません。
-
-<!-- AUDIO-TEST-START -->
-<audio controls src="https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/01_standard_noa.mp3"></audio>
-<!-- AUDIO-TEST-END -->
