@@ -16,21 +16,28 @@ torch の CUDA ホイールは **CUDA ランタイム(cuDNN/cuBLAS 等)を同梱
 
 ---
 
-## 作り方
+## 作り方（2モード）
+
+| モード | 配布サイズ | 中身 | 初回起動 |
+|---|---|---|---|
+| **THIN（既定・推奨）** | **~200MB** | Python + アプリのみ | torch(CUDA自動検出)+モデルをDL |
+| FULL | ~4-5GB | torch/CUDA も同梱 | モデルのみDL |
 
 ```bat
-REM 既定 (cu121 = 広い互換性)
+REM THIN(薄い配布物・推奨) — torch は初回起動時に自動DL
 build_portable.bat
 
-REM 新しめGPU向けに CUDA を変える
-set CUDA_TAG=cu128 & build_portable.bat
+REM FULL(全部同梱) — オフラインで即動く
+set FULL=1 & build_portable.bat
+
+REM FULL時に CUDA を指定したい場合
+set CUDA_TAG=cu128 & set FULL=1 & build_portable.bat
 ```
 
-生成物:
-- `dist\NoaTTS-portable\` … 展開済みフォルダ（`NoaTTS起動.bat` で起動）
-- `dist\NoaTTS-portable-<cuda>.zip` … 配布用 ZIP
+生成物: `dist\NoaTTS-portable\`（展開済み）と `dist\NoaTTS-portable-<MODE>.zip`（配布用）。
 
-ユーザー手順は **「ZIP を展開 → `NoaTTS起動.bat` をダブルクリック」** だけ（初回のみ TTS モデルを自動ダウンロード）。
+ユーザー手順は **「ZIP 展開 → `NoaTTS起動.bat` ダブルクリック」** だけ。THIN は初回起動時に
+必要なライブラリ(torch 等)を **GPU に合わせて自動DL/導入**し、続けて TTS モデルを取得する。
 
 ---
 
@@ -45,13 +52,14 @@ set CUDA_TAG=cu128 & build_portable.bat
 
 ---
 
-## 配布のハードル（重要）
+## 配布のハードル
 
-- ZIP サイズは **おおよそ 3〜6GB**（torch+CUDA が大半）。
-- **GitHub Releases は 1 ファイル 2GB 上限** → 大きい ZIP はそのまま置けない。対策:
-  - **Hugging Face** のモデルリポ等に ZIP を置き、GitHub Release からリンクする（推奨・無料で大容量）。
-  - もしくは ZIP を分割（`7z` のボリューム分割など）。
-- モデル（Irodori/DACVAE, 数GB）は **初回起動時に自動DL** される。完全オフライン配布にしたい場合のみ、ビルド時に `HF_HOME` を `dist\NoaTTS-portable\hf_cache` に向けて `download_models.py` を実行し、そのキャッシュを同梱する（その分 ZIP が更に数GB増える）。
+- **THIN(~200MB)なら GitHub Releases にそのまま置ける**（1ファイル2GB上限内）。外部ホスト不要＝これが推奨。
+- **FULL(~4-5GB)** は GitHub Releases の **2GB/ファイル上限**を超えるので、**Hugging Face** に置いて Release からリンクするか、ZIP を分割（`7z` のボリューム分割）する。
+- THIN/FULL とも **モデル(Irodori/DACVAE, 数GB)は初回起動時に自動DL**。完全オフライン配布にしたい場合のみ FULL + モデル同梱（ビルド時に `HF_HOME` を bundle 内へ向けて `download_models.py` を実行し、そのキャッシュを同梱）。
+
+> なぜ torch を初回DLにできるのか: torch+CUDA(~4GB)は **PyTorch の CDN から pip で取得**できるため、
+> 配布物に同梱しなくても初回起動時に入れられる（モデルと同じ「初回DL」方式）。THIN はこれを使って薄くしている。
 
 ---
 
