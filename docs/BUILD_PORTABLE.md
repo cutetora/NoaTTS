@@ -96,10 +96,10 @@ Name: "{commondesktop}\NoaTTS"; Filename: "{app}\python\pythonw.exe"; Parameters
 
 ---
 
-## まとめ（最短ルート）
+## まとめ（最短ルート・THIN推奨）
 
-1. `set CUDA_TAG=cu121 & build_portable.bat` で ZIP を作る
-2. 別Win機で動作確認
-3. ZIP を **Hugging Face** に置く（2GB超のため）
-4. GitHub Release から ZIP へリンク（＋ README に「DL→展開→起動」を明記）
-5. 余裕があれば Inno Setup で `.exe` インストーラ化、cu128 版も用意
+1. `build_portable.bat`（THIN既定）で **~200MB の ZIP** を作る
+2. 別Win機で「展開 → `NoaTTS起動.bat` → 初回DL → 1文読み上げ」まで動作確認
+3. ZIP を **GitHub Release にそのまま添付**（200MB なので 2GB 上限内・外部ホスト不要）
+4. README に「DL → 展開 → `NoaTTS起動.bat` 実行（初回のみ自動DL）」を明記
+5. 余裕があれば Inno Setup で `.exe` 化。完全オフライン版が要るなら `set FULL=1` で FULL ビルド（~4-5GB・配布は HF 経由）
