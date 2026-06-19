@@ -16,6 +16,14 @@
 
 > Windows 専用（named pipe を使用）。GPU は NVIDIA + CUDA が前提です（CPU のみでの動作は実用的ではありません）。
 
+**最小スペック**（⚡軽量モードで読み上げするだけ）
+→ Windows 10/11 (64bit) ／ NVIDIA GPU **VRAM 4GB**（実使用 約2.0GB）／ RAM 8GB ／ SSD 空き 10GB ／ Python 3.11 + CUDA対応 PyTorch
+
+**推奨スペック**（声作成・両エンジン・VoiceDesign も快適）
+→ Windows 11 ／ NVIDIA RTX 系 **VRAM 8GB〜**（Qwen3 1.7B も使うなら 12GB〜）／ RAM 16GB〜 ／ SSD 空き 20GB〜
+
+詳細は下表と、その下の VRAM 注記を参照してください。
+
 | 項目 | 最小 | 推奨 |
 |---|---|---|
 | OS | Windows 10 / 11 (64bit) | Windows 11 (64bit) |
