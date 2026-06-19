@@ -166,10 +166,25 @@ def _model_vram_md() -> str:
     return "\n".join(lines)
 
 
+def _lite_available() -> bool:
+    """int4 軽量ランタイム irodori_tts_lite が import 可能か (重い import はしない)。"""
+    import importlib.util
+    return importlib.util.find_spec("irodori_tts_lite") is not None
+
+
 def set_lightweight_mode(enabled: bool):
     """軽量モード ON/OFF。ON=int4軽量モデル(約1.5GB)+アイドル自動解放、OFF=通常bf16。
     使用モデルを切替え、UIエンジンを退避し、稼働中の読み上げdaemonにも反映する。"""
     from engine.irodori_engine import IrodoriEngine
+    # int4 は専用ランタイムが要る。無い配布(THIN等)で ON にすると読み込みで落ちるため、
+    # ここで弾いて導入手順を案内する (OFF への切替は常に許可)。
+    if enabled and not _lite_available():
+        return (
+            "⚠️ 軽量モードには int4 ランタイムが必要です。未導入のため ON にできません。\n"
+            "導入: `python -m pip install -r requirements-lite.txt` "
+            "(ポータブル版は `python\\python.exe -m pip install -r requirements-lite.txt`)",
+            _model_vram_md(),
+        )
     cfg.lightweight_mode = bool(enabled)
     repo = IrodoriEngine.LIGHT_CHECKPOINT if enabled else IrodoriEngine.DEFAULT_CHECKPOINT
     cfg.irodori_checkpoint = repo

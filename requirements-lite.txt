@@ -1,0 +1,20 @@
+# NoaTTS 軽量モード(int4)用の追加依存
+#
+# 軽量モード(⚡)は Irodori-TTS-500M-v3-int4 を使う。これには専用ランタイム
+# irodori_tts_lite と、その量子化カーネル(Triton)が必要。通常の読み上げ/
+# ボイス作成には不要なので、requirements.txt 本体とは分けてある。
+#
+# 入れ方:
+#   python -m pip install -r requirements-lite.txt
+#   (ポータブル配布なら  python\python.exe -m pip install -r requirements-lite.txt)
+#
+# 前提: git が必要(下記は GitHub から取得)。Windows 専用(triton-windows)。
+#   先に requirements.txt と torch を入れておくこと。
+
+# int4 ランタイム本体 (動作確認コミットに固定)
+irodori-tts-lite @ git+https://github.com/kizuna-intelligence/Irodori-TTS-Lite.git@cb08f355b3ee0a271e57db8a8984a949771f4449
+# その依存。明示しておく(メタには git+ で書かれているが順序を確実にするため)
+onecomp-runtime @ git+https://github.com/kizuna-intelligence/onecompression-runtime@main
+# int4 量子化カーネル (Windows 版 Triton)。Linux/Mac では通常の triton に読み替え。
+triton-windows>=3.6.0 ; platform_system == "Windows"
+triton>=3.0.0 ; platform_system != "Windows"

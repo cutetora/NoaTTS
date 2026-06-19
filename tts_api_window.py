@@ -131,6 +131,14 @@ class Api:
         try:
             from config import AppConfig
             from engine.irodori_engine import IrodoriEngine
+            # int4 は専用ランタイムが必須。未導入で ON にすると読み込みで落ちるため弾く。
+            if enabled:
+                import importlib.util
+                if importlib.util.find_spec("irodori_tts_lite") is None:
+                    return {"ok": False, "lightweight": False,
+                            "error": "軽量モードには int4 ランタイムが必要です。"
+                                     "未導入のため ON にできません。"
+                                     "`python\\python.exe -m pip install -r requirements-lite.txt` で導入してください。"}
             c = AppConfig.load()
             repo = IrodoriEngine.LIGHT_CHECKPOINT if enabled else IrodoriEngine.DEFAULT_CHECKPOINT
             c.lightweight_mode = bool(enabled)

@@ -95,6 +95,15 @@ class IrodoriEngine:
         from irodori_tts.inference_runtime import InferenceRuntime, RuntimeKey
         from huggingface_hub import hf_hub_download
 
+        # int4 を指していても lite ランタイムが無い環境(THIN 等)では、落ちる代わりに
+        # 通常 bf16 モデルへ自動フォールバックする (設定に int4 が残っていても起動できる)。
+        import importlib.util
+        if _is_int4_checkpoint(self.checkpoint) and \
+                importlib.util.find_spec("irodori_tts_lite") is None:
+            _report("[!] int4 ランタイム未導入のため通常モデルにフォールバックします "
+                    "(軽量モードは requirements-lite.txt で導入可)")
+            self.checkpoint = self.DEFAULT_CHECKPOINT
+
         _report(f"[2/4] HuggingFace から checkpoint DL/取得中 ({self.checkpoint})...")
         checkpoint_path = hf_hub_download(
             repo_id=self.checkpoint,
