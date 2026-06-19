@@ -10,6 +10,10 @@
 - **セリフ一括生成** — 台本（CSV/Excel）を読み込み、キャラごとにボイスを割り当ててまとめて音声化
 - **タスクトレイ常駐** + Web UI（Gradio）でボイス作成・編集（マスコット「ノア」が使い方を案内）
 
+<p align="center">
+  <img src="https://count.getloli.com/get/@cutetora-noatts?theme=moebooru" alt="NoaTTS visitors counter">
+</p>
+
 ---
 
 ## 動作環境
