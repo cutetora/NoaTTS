@@ -2,6 +2,8 @@
   <img src="https://count.getloli.com/get/@cutetora-noatts?theme=moebooru" alt="visitors" height="32">
 </div>
 
+**日本語** | [English](README.en.md) | [中文](README.zh.md)
+
 # NoaTTS
 
 **好きな声でキャラを喋らせる、ローカル日本語TTS。** テキストを入力すると、作った声で読み上げます。
@@ -38,28 +40,17 @@
      ![](assets/screenshots/voice-studio.png) のように差し込んでください。
      おすすめ: voice-studio.png / batch-generate.png / tts-settings.png -->
 
-### 🔊 音声サンプル
+### 🔊 音声サンプル（クリックで再生・DL）
 
-> 🎧 **百聞は一聴にしかず。** まずは生成された声を聴いてみてください。
+| サンプル | 内容 |
+|---|---|
+| 🎀 **女性・標準** | [ノアの声](assets/screenshots/samples/01_standard_noa.mp3?raw=1) — 明るく元気なサポート役 |
+| 🧭 **男性・標準** | [ネイサンの声](assets/screenshots/samples/01_standard_male_nathan.mp3?raw=1) — 快活で皮肉屋な冒険家風 |
+| 😊 **感情（同じ声で）** | [含み笑い](assets/screenshots/samples/02_emotion_warai.mp3?raw=1)・[怒り](assets/screenshots/samples/03_emotion_okori.mp3?raw=1)・[泣き](assets/screenshots/samples/04_emotion_naki.mp3?raw=1)・[震え声](assets/screenshots/samples/05_emotion_furue.mp3?raw=1) |
+| 🎭 **ボイスクローン** | [元の声（Before）](assets/screenshots/samples/clone_before_tsukuyomi.mp3?raw=1) → [複製した声（After）](assets/screenshots/samples/clone_after_1.mp3?raw=1) |
 
-<!-- 音声サンプルの貼り方(GitHubのMarkdownは音声を直接埋め込めないため):
-     1. GitHub のこの README をブラウザで「編集(鉛筆)」モードにする
-     2. 生成した .wav / .mp3 をエディタ欄にドラッグ&ドロップ → GitHub が
-        https://github.com/.../assets/... のURLを自動生成して貼ってくれる
-     3. そのリンクを下の各項目に差し込む(クリックで再生/DLできる)
-     ※ または Release / Issue に音声を添付してそのURLを貼ってもよい。
-     ※ 波形+テキスト付きの短い mp4 にすると README 上でそのまま再生できる。 -->
-
-| サンプル | 内容 | リンク |
-|---|---|---|
-| **標準の読み上げ（女性）** | 女性ボイス「ノア」の基本音質 | _（音声を添付してリンク）_ |
-| **標準の読み上げ（男性）** | ボイスデザインで作った男性ボイス | _（音声を添付してリンク）_ |
-| **感情の聴き比べ** | 同じ声で 喜・怒・哀・楽（😊😠😢🎵） | _（音声を添付してリンク）_ |
-| **ボイスクローン** | 元の音声（3〜10秒）→ 複製後の声 | _（音声を添付してリンク）_ |
-
-> 📌 **クローンサンプルのクレジット**：上記ボイスクローンの参照音声には、フリー素材
-> 「つくよみちゃん」の音声データを使用しています。
-> 　つくよみちゃんコーパス（CV.夢前黎） <https://tyc.rei-yumesaki.net/material/corpus/>
+> 📌 クローンの参照音声に「つくよみちゃんのサンプルボイス」を使用（ソフト紹介目的の掲載）。
+> 　使用素材：つくよみちゃんのサンプルボイス <https://tyc.rei-yumesaki.net/material/voice/sample-voice/>
 
 ---
 
@@ -94,18 +85,17 @@
 | Python | 3.11 | 3.11 |
 | PyTorch | CUDA 対応版 | CUDA 12.x 対応版（動作確認: torch 2.11.0+cu128 / CUDA 12.8） |
 
-> ⚠️ **VRAM 実測値（v1.1.0）** — 何を使うかで大きく変わります（数値は CUDAコンテキスト込みの実使用）。
+> ⚠️ **VRAM 実測値**（CUDAコンテキスト込み）— 用途で変わります。
 >
-> - **読み上げアプリ（常駐デーモン）のみ ＋ ⚡軽量モード**: **約2.0GB**（モデル本体 約1.5GB ＋ CUDAコンテキスト 約0.5GB）。これが最小構成で、テキストを送って読み上げるだけならこれだけ。**4GB クラスの GPU でも快適**です。
-> - **読み上げアプリのみ ＋ 通常モデル（Irodori 500M bf16）**: 約3GB。
-> - **Voice Studio（声の作成・編集）も使う場合**: Voice Studio は読み上げデーモンとは**別の独自エンジン**を持ち、読み上げデーモンは使いません。そのため読み上げと並行して声を作ると**モデルが2つ載り +2GB ほど**増えます（声作成は重い処理。アイドル時は自動退避）。逆に「声作成だけ」「読み上げだけ」ならモデルは1つで済みます。VoiceDesign 600M を使う場合は約3GB。
-> - **Qwen3-TTS 1.7B（別エンジン・大型）**: 6〜8GB 程度。
+> | 使い方 | VRAM |
+> |---|---|
+> | 読み上げのみ ＋ ⚡軽量モード（int4） | **約2.0GB**（4GB GPUでも快適） |
+> | 読み上げのみ ＋ 通常モデル（Irodori 500M） | 約3GB |
+> | ＋ Voice Studio（声作成）も並行 | ＋2GBほど（アイドル時は自動退避） |
+> | Qwen3-TTS 1.7B（大型エンジン） | 6〜8GB |
 >
-> → **読み上げ用途だけなら、軽量モードで実質2GB前後**。声作成も並行する／VoiceDesign を使う／大型の Qwen3 1.7B を使うなら 8〜12GB あると安心です。
-
-- **エンジン（Qwen3 / Irodori）は同時に両方ロードされません。** 設定で切り替えて使うため、必要 VRAM は「いま使っているエンジン」で決まります（足し算ではありません）。
-- ストレージは PyTorch（数GB）＋モデルの内訳です。**Irodori 500M ≈ 2GB／Qwen3-TTS 1.7B ≈ 4GB**（使うモデルだけ落とせば節約できます）。
-- CUDA バージョンは GPU 世代に依存しますが、`setup.bat` が **自動検出**して合う PyTorch を入れます（手動で固定したい場合のみ `setup.bat` 内の `TORCH_INDEX` を編集）。
+> エンジン（Qwen3 / Irodori）は**同時にロードされません**（足し算ではありません）。
+> CUDA は `setup.bat` が自動検出して合う PyTorch を入れます。
 
 ---
 
