@@ -63,7 +63,7 @@ echo [copy] copying app files...
 for %%d in (assets batch conf daemon engine presets ui voice voices) do (
   if exist "%%d" xcopy /e /i /q /y "%%d" "%DIST%\%%d" >nul
 )
-for %%f in (app.py config.py detect_cuda.py download_models.py llm_provider.py noa_launcher.py noa_tts_daemon.py tray.py tts_api_window.py webview_window.py verify_portable.py first_run_setup.bat requirements.txt README.md CHANGELOG.md NoaTTS.exe) do (
+for %%f in (app.py config.py detect_cuda.py download_models.py llm_provider.py noa_launcher.py noa_tts_daemon.py tray.py tts_api_window.py webview_window.py verify_portable.py first_run_setup.bat requirements.txt requirements-lite.txt README.md CHANGELOG.md NoaTTS.exe) do (
   if exist "%%f" copy /y "%%f" "%DIST%\" >nul
 )
 
