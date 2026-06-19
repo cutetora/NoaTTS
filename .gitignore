@@ -32,6 +32,9 @@ presets/*.json
 assets/_state.txt
 # Voice Studio のVRAM表示用ステートファイル (実行時生成)
 assets/_studio_vram.txt
+# ポータブル配布のビルド成果物 (build_portable.bat)
+dist/
+_build_venv/
 
 # 開発用の Claude Code スキル等 (配布物には不要)
 .claude/
