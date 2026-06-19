@@ -19,15 +19,15 @@
 **最小スペック**（⚡軽量モードで読み上げするだけ）
 → Windows 10/11 (64bit) ／ NVIDIA GPU **VRAM 4GB**（実使用 約2.0GB）／ RAM 8GB ／ SSD 空き 10GB ／ Python 3.11 + CUDA対応 PyTorch
 
-**推奨スペック**（声作成・両エンジン・VoiceDesign も快適）
-→ Windows 11 ／ NVIDIA RTX 系 **VRAM 8GB〜**（Qwen3 1.7B も使うなら 12GB〜）／ RAM 16GB〜 ／ SSD 空き 20GB〜
+**推奨スペック**（声の作成も快適・大型の Qwen3 や VoiceDesign も使う）
+→ Windows 11 ／ NVIDIA RTX 系 **VRAM 8GB〜**（大型の Qwen3 1.7B を使う場合は 12GB〜）／ RAM 16GB〜 ／ SSD 空き 20GB〜
 
 詳細は下表と、その下の VRAM 注記を参照してください。
 
 | 項目 | 最小 | 推奨 |
 |---|---|---|
 | OS | Windows 10 / 11 (64bit) | Windows 11 (64bit) |
-| GPU | NVIDIA（CUDA対応）／VRAM 4GB〜（⚡軽量モード時） | NVIDIA RTX 系／VRAM 8GB〜（Qwen3・VoiceDesign も使うなら 12GB〜） |
+| GPU | NVIDIA（CUDA対応）／VRAM 4GB〜（⚡軽量モード時） | NVIDIA RTX 系／VRAM 8GB〜（大型の Qwen3 1.7B を使う場合は 12GB〜） |
 | 主に使えるエンジン | Irodori 500M 中心 | Qwen3 1.7B・VoiceDesign も快適に切替 |
 | メモリ (RAM) | 8GB | 16GB〜 |
 | ストレージ | SSD 空き 10GB〜 | SSD 空き 20GB〜 |
@@ -41,8 +41,9 @@
 > - **Voice Studio（声の作成・編集）も使う場合**: 上記に加えてもう一つモデルが載るので **+2GB ほど**（声作成は重い処理。使い終わると自動で退避します）。VoiceDesign 600M を使う場合は約3GB。
 > - **Qwen3-TTS 1.7B（別エンジン・大型）**: 6〜8GB 程度。
 >
-> → **読み上げ用途だけなら、軽量モードで実質2GB前後**。声作成も使う／両エンジンを切り替える／VoiceDesign も使うなら 8〜12GB あると安心です。
+> → **読み上げ用途だけなら、軽量モードで実質2GB前後**。声作成も並行する／VoiceDesign を使う／大型の Qwen3 1.7B を使うなら 8〜12GB あると安心です。
 
+- **エンジン（Qwen3 / Irodori）は同時に両方ロードされません。** 設定で切り替えて使うため、必要 VRAM は「いま使っているエンジン」で決まります（足し算ではありません）。
 - ストレージは PyTorch（数GB）＋モデルの内訳です。**Irodori 500M ≈ 2GB／Qwen3-TTS 1.7B ≈ 4GB**（使うモデルだけ落とせば節約できます）。
 - CUDA バージョンは GPU 世代に依存します（例: RTX 50 系 = cu128、それ以前 = cu121 など）。`setup.bat` の `TORCH_INDEX` で環境に合わせてください。
 
