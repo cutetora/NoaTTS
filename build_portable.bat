@@ -56,9 +56,16 @@ echo [copy] アプリ一式をコピー...
 for %%d in (assets batch conf daemon engine presets ui voice voices) do (
   if exist "%%d" xcopy /e /i /q /y "%%d" "%DIST%\%%d" >nul
 )
-for %%f in (app.py config.py detect_cuda.py download_models.py llm_provider.py noa_launcher.py noa_tts_daemon.py tray.py tts_api_window.py webview_window.py README.md CHANGELOG.md) do (
+for %%f in (app.py config.py detect_cuda.py download_models.py llm_provider.py noa_launcher.py noa_tts_daemon.py tray.py tts_api_window.py webview_window.py verify_portable.py README.md CHANGELOG.md) do (
   if exist "%%f" copy /y "%%f" "%DIST%\" >nul
 )
+
+REM 3.5) 自己完結チェック(同梱 Python で実行: システムPythonに頼ってないか確認)
+echo.
+echo [verify] ポータブル自己完結チェック...
+"%PYDIR%\python.exe" "%DIST%\verify_portable.py"
+if errorlevel 1 echo [verify] !!! 自己完結していない可能性があります(上記NG)。配布前に要確認。
+echo.
 
 REM 4) 同梱 Python を使う起動 bat を生成
 set "LAUNCH=%DIST%\NoaTTS起動.bat"
