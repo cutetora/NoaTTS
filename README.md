@@ -18,27 +18,14 @@
 
 ## 🔊 まずは聴いてみて（音声サンプル）
 
-> ▶ 下のプレイヤーで、その場で再生できます（音が出ます）。
+### ▶ [**音声サンプルを再生ページで聴く**](https://cutetora.github.io/NoaTTS/audio.html)
 
-**🎀 女性ボイス「ノア」** — 明るく元気なサポート役
+上のリンクから、ブラウザのプレイヤーで各サンプルを再生できます：
 
-<video src="https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/01_standard_noa.mp4" controls width="480"></video>
-
-**🧭 男性ボイス「man」** — 快活で皮肉屋な冒険家風
-
-<video src="https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/01_standard_male_man.mp4" controls width="480"></video>
-
-**😊 感情表現（すべて同じ声！ 文中の絵文字で変わります）**
-
-<video src="https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/02_emotion_warai.mp4" controls width="480"></video>
-
-<video src="https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/04_emotion_naki.mp4" controls width="480"></video>
-
-**🎭 ボイスクローン** — 数秒の音声から声を再現（元の声 → 複製した声）
-
-<video src="https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/clone_before_tsukuyomi.mp4" controls width="480"></video>
-
-<video src="https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/clone_after_1.mp4" controls width="480"></video>
+- 🎀 **女性ボイス「ノア」** — 明るく元気なサポート役
+- 🧭 **男性ボイス「man」** — 快活で皮肉屋な冒険家風
+- 😊 **感情表現**（すべて同じ声！ 文中の絵文字で 含み笑い・怒り・泣き・震え声）
+- 🎭 **ボイスクローン** — 数秒の音声から声を再現（元の声 → 複製した声）
 
 > 📌 クローンの参照音声に「つくよみちゃんのサンプルボイス」を使用（ソフト紹介目的の掲載）。
 > 　使用素材：つくよみちゃんのサンプルボイス <https://tyc.rei-yumesaki.net/material/voice/sample-voice/>

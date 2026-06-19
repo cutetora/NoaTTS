@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NoaTTS — 音声サンプル</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    font-family: "Segoe UI", "Yu Gothic UI", sans-serif;
+    background: #14141f; color: #e8e8f0;
+    max-width: 720px; margin: 0 auto; padding: 32px 20px 64px;
+    line-height: 1.7;
+  }
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.1rem; margin-top: 2rem; color: #b8a6ff; border-bottom: 1px solid #2a2a3e; padding-bottom: 6px; }
+  .sample { margin: 14px 0; }
+  .sample .label { font-weight: 600; margin-bottom: 4px; }
+  .sample .note { color: #9a9ab0; font-size: 0.9rem; }
+  audio { width: 100%; max-width: 420px; height: 36px; }
+  .credit { margin-top: 2.5rem; font-size: 0.85rem; color: #9a9ab0; border-top: 1px solid #2a2a3e; padding-top: 12px; }
+  a { color: #8a6fff; }
+  .back { display: inline-block; margin-bottom: 1rem; }
+</style>
+</head>
+<body>
+  <a class="back" href="https://github.com/cutetora/NoaTTS">← NoaTTS リポジトリへ戻る</a>
+  <h1>🔊 NoaTTS 音声サンプル</h1>
+  <p>NoaTTS で生成した声のサンプルです。再生ボタンで聴けます。</p>
+
+  <h2>標準の読み上げ</h2>
+  <div class="sample">
+    <div class="label">🎀 女性ボイス「ノア」 <span class="note">— 明るく元気なサポート役</span></div>
+    <audio controls preload="none" src="samples/01_standard_noa.mp3"></audio>
+  </div>
+  <div class="sample">
+    <div class="label">🧭 男性ボイス「man」 <span class="note">— 快活で皮肉屋な冒険家風</span></div>
+    <audio controls preload="none" src="samples/01_standard_male_man.mp3"></audio>
+  </div>
+
+  <h2>感情表現 <span class="note" style="font-weight:400">— すべて同じ声！ 文中の絵文字で変わります</span></h2>
+  <div class="sample">
+    <div class="label">😊 含み笑い</div>
+    <audio controls preload="none" src="samples/02_emotion_warai.mp3"></audio>
+  </div>
+  <div class="sample">
+    <div class="label">😠 怒り</div>
+    <audio controls preload="none" src="samples/03_emotion_okori.mp3"></audio>
+  </div>
+  <div class="sample">
+    <div class="label">😭 泣き</div>
+    <audio controls preload="none" src="samples/04_emotion_naki.mp3"></audio>
+  </div>
+  <div class="sample">
+    <div class="label">🥺 震え声</div>
+    <audio controls preload="none" src="samples/05_emotion_furue.mp3"></audio>
+  </div>
+
+  <h2>ボイスクローン <span class="note" style="font-weight:400">— 数秒の音声から声を再現</span></h2>
+  <div class="sample">
+    <div class="label">元の声（Before）</div>
+    <audio controls preload="none" src="samples/clone_before_tsukuyomi.mp3"></audio>
+  </div>
+  <div class="sample">
+    <div class="label">複製した声（After）</div>
+    <audio controls preload="none" src="samples/clone_after_1.mp3"></audio>
+  </div>
+
+  <div class="credit">
+    📌 クローンの参照音声に「つくよみちゃんのサンプルボイス」を使用（ソフト紹介目的の掲載）。<br>
+    使用素材：<a href="https://tyc.rei-yumesaki.net/material/voice/sample-voice/">つくよみちゃんのサンプルボイス</a>
+  </div>
+</body>
+</html>
