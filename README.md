@@ -16,17 +16,33 @@
 > 付いていれば、たいてい動きます。付いていない（ノートPCの内蔵グラフィックのみ等）と、残念ながら動きません。
 > OSは **Windows** 推奨です。**初回の準備のときだけネット接続が必要**（以降はオフラインで動きます）。
 
-## 🔊 まずは聴いてみて（音声サンプル・クリックで再生）
+## 🔊 まずは聴いてみて（音声サンプル）
 
-| サンプル | 内容 |
-|---|---|
-| 🎀 **女性・標準** | [ノアの声](assets/screenshots/samples/01_standard_noa.mp3?raw=1) — 明るく元気なサポート役 |
-| 🧭 **男性・標準** | [男性ボイス「man」](assets/screenshots/samples/01_standard_male_man.mp3?raw=1) — 快活で皮肉屋な冒険家風 |
-| 😊 **感情（同じ声で！）** | [含み笑い](assets/screenshots/samples/02_emotion_warai.mp3?raw=1)・[怒り](assets/screenshots/samples/03_emotion_okori.mp3?raw=1)・[泣き](assets/screenshots/samples/04_emotion_naki.mp3?raw=1)・[震え声](assets/screenshots/samples/05_emotion_furue.mp3?raw=1) |
-| 🎭 **ボイスクローン** | [元の声（Before）](assets/screenshots/samples/clone_before_tsukuyomi.mp3?raw=1) → [複製した声（After）](assets/screenshots/samples/clone_after_1.mp3?raw=1) — 数秒の音声から声を再現 |
+> ▶ 下の波形をクリックすると、その場で再生できます（音が出ます）。
+
+**🎀 女性ボイス「ノア」** — 明るく元気なサポート役
+
+https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/01_standard_noa.mp4
+
+**🧭 男性ボイス「man」** — 快活で皮肉屋な冒険家風
+
+https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/01_standard_male_man.mp4
+
+**😊 感情表現（すべて同じ声！ 文中の絵文字で変わります）**
+
+https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/02_emotion_warai.mp4
+
+https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/04_emotion_naki.mp4
+
+**🎭 ボイスクローン** — 数秒の音声から声を再現（元の声 → 複製した声）
+
+https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/clone_before_tsukuyomi.mp4
+
+https://github.com/cutetora/NoaTTS/raw/main/assets/screenshots/samples/clone_after_1.mp4
 
 > 📌 クローンの参照音声に「つくよみちゃんのサンプルボイス」を使用（ソフト紹介目的の掲載）。
 > 　使用素材：つくよみちゃんのサンプルボイス <https://tyc.rei-yumesaki.net/material/voice/sample-voice/>
+> 　（個別の音声ファイルは [`assets/screenshots/samples/`](assets/screenshots/samples/) にもあります）
 
 ## できること
 
