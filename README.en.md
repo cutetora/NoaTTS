@@ -45,7 +45,7 @@ Other apps and scripts can call it too (**[OpenAI TTS API compatible](#http-api)
 | Sample | Description |
 |---|---|
 | 🎀 **Female · standard** | [Noa's voice](assets/screenshots/samples/01_standard_noa.mp3?raw=1) — a bright, cheerful support character |
-| 🧭 **Male · standard** | [Nathan's voice](assets/screenshots/samples/01_standard_male_nathan.mp3?raw=1) — a lively, sardonic adventurer type |
+| 🧭 **Male · standard** | ["man" voice](assets/screenshots/samples/01_standard_male_man.mp3?raw=1) — a lively, sardonic adventurer type |
 | 😊 **Emotion (same voice)** | [stifled chuckle](assets/screenshots/samples/02_emotion_warai.mp3?raw=1) · [anger](assets/screenshots/samples/03_emotion_okori.mp3?raw=1) · [crying](assets/screenshots/samples/04_emotion_naki.mp3?raw=1) · [trembling voice](assets/screenshots/samples/05_emotion_furue.mp3?raw=1) |
 | 🎭 **Voice cloning** | [original voice (Before)](assets/screenshots/samples/clone_before_tsukuyomi.mp3?raw=1) → [cloned voice (After)](assets/screenshots/samples/clone_after_1.mp3?raw=1) |
 

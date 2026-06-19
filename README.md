@@ -45,7 +45,7 @@
 | サンプル | 内容 |
 |---|---|
 | 🎀 **女性・標準** | [ノアの声](assets/screenshots/samples/01_standard_noa.mp3?raw=1) — 明るく元気なサポート役 |
-| 🧭 **男性・標準** | [ネイサンの声](assets/screenshots/samples/01_standard_male_nathan.mp3?raw=1) — 快活で皮肉屋な冒険家風 |
+| 🧭 **男性・標準** | [男性ボイス「man」](assets/screenshots/samples/01_standard_male_man.mp3?raw=1) — 快活で皮肉屋な冒険家風 |
 | 😊 **感情（同じ声で）** | [含み笑い](assets/screenshots/samples/02_emotion_warai.mp3?raw=1)・[怒り](assets/screenshots/samples/03_emotion_okori.mp3?raw=1)・[泣き](assets/screenshots/samples/04_emotion_naki.mp3?raw=1)・[震え声](assets/screenshots/samples/05_emotion_furue.mp3?raw=1) |
 | 🎭 **ボイスクローン** | [元の声（Before）](assets/screenshots/samples/clone_before_tsukuyomi.mp3?raw=1) → [複製した声（After）](assets/screenshots/samples/clone_after_1.mp3?raw=1) |
 

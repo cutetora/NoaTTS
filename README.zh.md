@@ -45,7 +45,7 @@
 | 样本 | 内容 |
 |---|---|
 | 🎀 **女声・标准** | [诺亚的声音](assets/screenshots/samples/01_standard_noa.mp3?raw=1) — 明朗活泼的辅助角色 |
-| 🧭 **男声・标准** | [Nathan 的声音](assets/screenshots/samples/01_standard_male_nathan.mp3?raw=1) — 爽朗而爱挖苦的冒险家风格 |
+| 🧭 **男声・标准** | [男声「man」](assets/screenshots/samples/01_standard_male_man.mp3?raw=1) — 爽朗而爱挖苦的冒险家风格 |
 | 😊 **情感（用同一声音）** | [含笑](assets/screenshots/samples/02_emotion_warai.mp3?raw=1)・[愤怒](assets/screenshots/samples/03_emotion_okori.mp3?raw=1)・[哭泣](assets/screenshots/samples/04_emotion_naki.mp3?raw=1)・[颤抖声](assets/screenshots/samples/05_emotion_furue.mp3?raw=1) |
 | 🎭 **语音克隆** | [原始声音（Before）](assets/screenshots/samples/clone_before_tsukuyomi.mp3?raw=1) → [复制的声音（After）](assets/screenshots/samples/clone_after_1.mp3?raw=1) |
 
