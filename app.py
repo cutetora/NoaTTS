@@ -709,6 +709,8 @@ if __name__ == "__main__":
     start_preload()
     # 軽量モード時のアイドル自動アンロード監視を開始 (cfg.lightweight_mode を実行時参照)。
     ec.start_idle_unload_watchdog()
+    # Voice Studio(このプロセス)のVRAMをファイルに書き出す (読み上げ設定ウィンドウが表示用に読む)。
+    ec.start_studio_vram_writer()
     app = build_ui()
     _favicon = Path(__file__).parent / "assets" / "noa_icon.png"
     # queue() を有効化: 5シード探索/喜怒哀楽4種など数十秒かかる生成でも

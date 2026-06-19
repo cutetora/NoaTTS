@@ -89,10 +89,22 @@ class Api:
         return _http("/voices")
 
     def vram(self):
-        """VRAM使用状況 (全体/NoaTTS/空き、MB) を daemon から取得。"""
+        """VRAM使用状況 (全体/読み上げ/Voice Studio/空き、MB)。
+        daemon から 全体/noa を取得し、Voice Studio(app.py) の分は state ファイルから読む。"""
         if not port_open(API_PORT):
             return {"ok": False}
-        return _http("/vram")
+        info = _http("/vram")
+        # Voice Studio(app.py) のVRAM: app.py が 3秒ごとに書き出すファイル。
+        # 10秒以上更新が無ければ Voice Studio 未起動とみなして 0。
+        try:
+            f = ROOT / "assets" / "_studio_vram.txt"
+            if f.exists() and (time.time() - f.stat().st_mtime) < 10:
+                info["studio"] = int(f.read_text(encoding="utf-8").strip() or "0")
+            else:
+                info["studio"] = 0
+        except Exception:
+            info["studio"] = 0
+        return info
 
     def models(self):
         """irodori の使用可能モデル一覧 (DL状態付き)。daemon 不要。"""
@@ -270,11 +282,12 @@ HTML = r"""<!DOCTYPE html>
   .vram-gauge{display:flex;width:100%;height:22px;border-radius:7px;overflow:hidden;
     background:#2e2640;border:1px solid var(--line);}
   .vram-noa{height:100%;background:linear-gradient(90deg,#d8557a,#e0769a);transition:width .4s;}
+  .vram-studio{height:100%;background:linear-gradient(90deg,#5fb0d8,#7ac6e0);transition:width .4s;}
   .vram-other{height:100%;background:#5a4a78;transition:width .4s;}
   .vram-legend{display:flex;gap:14px;margin-top:8px;font-size:12px;color:var(--muted);}
   .vram-legend b{color:var(--ink);font-weight:600;}
   .vram-sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle;}
-  .vram-noa-c{background:#d8557a;} .vram-other-c{background:#5a4a78;} .vram-free-c{background:#2e2640;border:1px solid var(--line);}
+  .vram-noa-c{background:#d8557a;} .vram-studio-c{background:#5fb0d8;} .vram-other-c{background:#5a4a78;} .vram-free-c{background:#2e2640;border:1px solid var(--line);}
   .b-on{background:var(--ok);color:#0c1f14;} .b-off{background:#4a4356;}
   .speedval{min-width:46px;text-align:right;font-variant-numeric:tabular-nums;color:var(--accent);font-weight:600;}
   .msg{margin-top:10px;font-size:12.5px;color:var(--muted);min-height:16px;}
@@ -309,9 +322,10 @@ HTML = r"""<!DOCTYPE html>
 
   <div class="card">
     <h2>VRAM 使用状況</h2>
-    <div id="vramGauge" class="vram-gauge"><div id="vramNoa" class="vram-noa"></div><div id="vramOther" class="vram-other"></div></div>
+    <div id="vramGauge" class="vram-gauge"><div id="vramNoa" class="vram-noa"></div><div id="vramStudio" class="vram-studio"></div><div id="vramOther" class="vram-other"></div></div>
     <div class="vram-legend">
-      <span><i class="vram-sw vram-noa-c"></i>NoaTTS <b id="vramNoaTxt">-</b></span>
+      <span><i class="vram-sw vram-noa-c"></i>読み上げ <b id="vramNoaTxt">-</b></span>
+      <span><i class="vram-sw vram-studio-c"></i>Voice Studio <b id="vramStudioTxt">-</b></span>
       <span><i class="vram-sw vram-other-c"></i>その他 <b id="vramOtherTxt">-</b></span>
       <span><i class="vram-sw vram-free-c"></i>空き <b id="vramFreeTxt">-</b></span>
     </div>
@@ -411,19 +425,24 @@ async function refresh() {
 
 function gb(mb){ return (mb/1024).toFixed(1)+'GB'; }
 async function updateVram(running){
-  const noaEl=document.getElementById('vramNoa'), otherEl=document.getElementById('vramOther');
+  const noaEl=document.getElementById('vramNoa'), studioEl=document.getElementById('vramStudio'), otherEl=document.getElementById('vramOther');
   const msg=document.getElementById('vramMsg');
-  if(!running){ noaEl.style.width='0%'; otherEl.style.width='0%';
+  const stTxt=document.getElementById('vramStudioTxt');
+  if(!running){ noaEl.style.width='0%'; if(studioEl)studioEl.style.width='0%'; otherEl.style.width='0%';
     document.getElementById('vramNoaTxt').textContent='-';
+    if(stTxt)stTxt.textContent='-';
     document.getElementById('vramOtherTxt').textContent='-';
     document.getElementById('vramFreeTxt').textContent='-';
     msg.textContent='(読み上げ停止中)'; return; }
   const v=await api.vram();
   if(!v||!v.ok||!v.total){ msg.textContent='VRAM情報を取得できません'; return; }
-  const noa=v.noa||0, other=Math.max(0,(v.used||0)-noa), total=v.total;
+  const noa=v.noa||0, studio=v.studio||0, total=v.total;
+  const other=Math.max(0,(v.used||0)-noa-studio);
   noaEl.style.width=(noa/total*100).toFixed(1)+'%';
+  if(studioEl)studioEl.style.width=(studio/total*100).toFixed(1)+'%';
   otherEl.style.width=(other/total*100).toFixed(1)+'%';
   document.getElementById('vramNoaTxt').textContent=gb(noa);
+  if(stTxt)stTxt.textContent=(studio>0?gb(studio):'未起動');
   document.getElementById('vramOtherTxt').textContent=gb(other);
   document.getElementById('vramFreeTxt').textContent=gb(v.free||0);
   msg.textContent='全体 '+gb(v.used)+' / '+gb(total)+' 使用中 ('+(v.used/total*100).toFixed(0)+'%)';

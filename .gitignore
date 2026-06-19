@@ -30,6 +30,8 @@ presets/*.json
 
 # トレイアイコンの状態ファイル (walk/run/idle。実行時生成)
 assets/_state.txt
+# Voice Studio のVRAM表示用ステートファイル (実行時生成)
+assets/_studio_vram.txt
 
 # 開発用の Claude Code スキル等 (配布物には不要)
 .claude/

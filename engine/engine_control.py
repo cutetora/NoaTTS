@@ -96,6 +96,42 @@ def start_idle_unload_watchdog(poll_sec: float = 15.0):
     threading.Thread(target=_watch, daemon=True).start()
 
 
+# ── Voice Studio(app.py) の VRAM をファイルに書き出す ──────────
+# 読み上げ設定ウィンドウ(別プロセス)は app.py の torch メモリを直接読めないため、
+# app.py 自身が自プロセスの reserved を定期的にファイルへ書き出し、設定ウィンドウが
+# それを読んで「Voice Studio が使っている VRAM」として表示する。
+_STUDIO_VRAM_FILE = BASE_DIR / "assets" / "_studio_vram.txt"
+_studio_vram_writer_started = False
+
+
+def _write_studio_vram():
+    try:
+        import torch
+        mb = 0
+        if torch.cuda.is_available():
+            mb = round(torch.cuda.memory_reserved() / (1024 * 1024))
+        _STUDIO_VRAM_FILE.parent.mkdir(parents=True, exist_ok=True)
+        _STUDIO_VRAM_FILE.write_text(str(mb), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def start_studio_vram_writer(interval: float = 3.0):
+    """app.py の VRAM を定期的にファイルへ書き出す (設定ウィンドウ表示用)。
+    多重起動はしない。アプリ起動時に1回だけ呼ぶ。"""
+    global _studio_vram_writer_started
+    if _studio_vram_writer_started:
+        return
+    _studio_vram_writer_started = True
+
+    def _loop():
+        while True:
+            _write_studio_vram()
+            time.sleep(interval)
+
+    threading.Thread(target=_loop, daemon=True).start()
+
+
 # ── Activity Monitor ──
 class ActivityMonitor:
     """Global progress tracker visible across all tabs."""
