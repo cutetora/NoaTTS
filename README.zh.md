@@ -29,6 +29,8 @@
 > 🛠 辅助制作的功能：即使参考音频中带有 BGM，也可通过 **BGM 去除（Demucs）** 提取人声／
 > 保存前可通过 **5 个 seed 对比**挑选好声音，并以**喜怒哀乐试听**来确认情感的呈现。
 
+![Voice Studio](assets/screenshots/voice-studio.png)
+
 ### 🥺 可以注入情感
 在句子中加入 **😭😠🥺** 等表情符号，**声音保持不变，只叠加情感**（Irodori）。
 哭泣、愤怒、含笑、低语、快速说话等。可以为角色台词添加表情。
@@ -37,13 +39,13 @@
 读取 **CSV/Excel 剧本**，为每个角色分配声音，**一口气批量生成**。
 适合制作视频、游戏、有声剧、朗读等素材。无需一条条逐个导出。
 
+![批量生成](assets/screenshots/batch-generate.png)
+
 ### 🔔 让制作好的声音成为「常驻朗读员」
 常驻系统托盘，只要发送文本就会读出来。用于提示作业完成等通知很方便。
 也可以从其他应用或脚本调用（**[兼容 OpenAI TTS API](#http-api)**、完全本地运行／无需 API 密钥／面向进阶用户）。
 
-<!-- TODO(截图): 请把图片放到 assets/screenshots/ 下，并在各章节中以
-     ![](assets/screenshots/voice-studio.png) 的形式插入。
-     推荐: voice-studio.png / batch-generate.png / tts-settings.png -->
+![朗读设置](assets/screenshots/tts-settings.png)
 
 ### 🔊 音声样本（点击即可播放・下载）
 

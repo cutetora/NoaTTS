@@ -27,6 +27,8 @@
 > 🛠 作成を助ける機能：参照音声に BGM が入っていても **BGM除去（Demucs）** でボーカルを抽出／
 > 保存前に **5シード比較**で良い声を選び、**喜怒哀楽で試聴**して感情の乗りを確認できます。
 
+![Voice Studio](assets/screenshots/voice-studio.png)
+
 ### 🥺 感情を込められる
 文中に **😭😠🥺** などの絵文字を入れると、**声はそのままに感情が乗ります**（Irodori）。
 泣き・怒り・含み笑い・囁き・早口など。キャラのセリフに表情をつけられます。
@@ -35,13 +37,13 @@
 **CSV/Excelの台本**を読み込み、キャラごとに声を割り当てて**一気に生成**。
 動画・ゲーム・ボイスドラマ・朗読の素材作りに。一本ずつ書き出す手間がいりません。
 
+![セリフ一括生成](assets/screenshots/batch-generate.png)
+
 ### 🔔 作った声を“常駐の読み上げ係”に
 システムトレイに常駐し、テキストを送るだけで読み上げ。作業完了の通知などに便利。
 他のアプリやスクリプトからも呼び出せます（**[OpenAI TTS API 互換](#http-api)**・ローカル完結／APIキー不要・くわしい人向け）。
 
-<!-- TODO(スクショ): assets/screenshots/ に画像を置いて、各セクションに
-     ![](assets/screenshots/voice-studio.png) のように差し込んでください。
-     おすすめ: voice-studio.png / batch-generate.png / tts-settings.png -->
+![読み上げ設定ウィンドウ](assets/screenshots/tts-settings.png)
 
 ### 🔊 音声サンプル（クリックで再生・DL）
 

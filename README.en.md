@@ -26,6 +26,8 @@ The tricky settings? The mascot "Noa" walks you through them right on screen.
 >
 > 🛠 Features that help you create: even if the reference audio has BGM, **BGM removal (Demucs)** extracts the vocals / before saving, you can pick a good voice via a **5-seed comparison** and **audition it with joy/anger/sorrow/fun** to check how the emotion rides.
 
+![Voice Studio](assets/screenshots/voice-studio.png)
+
 ### 🥺 Add emotion
 Drop emojis like **😭😠🥺** into your text, and **the emotion comes through while the voice stays the same** (Irodori).
 Crying, anger, a stifled chuckle, whispering, fast talking, and more. Give your characters' lines real expression.
@@ -34,13 +36,13 @@ Crying, anger, a stifled chuckle, whispering, fast talking, and more. Give your 
 Load a **CSV/Excel script**, assign a voice to each character, and **generate everything at once**.
 Great for producing material for videos, games, voice dramas, and audio readings. No more exporting lines one at a time.
 
+![Batch generation](assets/screenshots/batch-generate.png)
+
 ### 🔔 Make your voice a resident "read-aloud assistant"
 It stays resident in the system tray and reads aloud the moment you send it text. Handy for things like task-completion notifications.
 Other apps and scripts can call it too (**[OpenAI TTS API compatible](#http-api)** · fully local / no API key required · for advanced users).
 
-<!-- TODO(screenshots): Place images under assets/screenshots/ and insert them into each section
-     like ![](assets/screenshots/voice-studio.png).
-     Recommended: voice-studio.png / batch-generate.png / tts-settings.png -->
+![Read-aloud settings](assets/screenshots/tts-settings.png)
 
 ### 🔊 Audio samples (click to play / download)
 
