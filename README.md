@@ -1,4 +1,4 @@
-<div align="right">
+<div align="left">
   <img src="https://count.getloli.com/get/@cutetora-noatts?theme=moebooru" alt="visitors" height="32">
 </div>
 
