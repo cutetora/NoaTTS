@@ -33,7 +33,7 @@ The tricky settings? The mascot "Noa" walks you through them right on screen.
 ### 🎨 Create the voice you want (3 ways)
 | Method | Who it's for | Ease |
 |---|---|---|
-| **Voice cloning** | You want to reproduce a voice from **3–10 seconds of audio** you already have | ★★ |
+| **Voice cloning** | You want to reproduce a voice from **3–10 seconds of audio** you already have | ★★★ |
 | **Custom voice** | You want to pick a ready-made voice and fine-tune it (Qwen3) | ★★★ easy |
 | **Voice Design** | You want to craft the voice qualities in fine detail | ★ |
 
