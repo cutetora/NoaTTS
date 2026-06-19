@@ -13,10 +13,10 @@ REM if launched from scripts\, step up to the app root (where python\ is).
 if not exist "python\python.exe" if exist "..\python\python.exe" cd ..
 set "PPY=python\python.exe"
 
-echo.
+echo(
 echo === NoaTTS first-run setup ===
 echo  Downloading required libraries (~4GB). First run only, takes a few minutes.
-echo.
+echo(
 
 REM --- 0) sanity: bundled python must exist ---
 if not exist "%PPY%" (
@@ -32,12 +32,12 @@ set "CUDA_TAG=cu121"
 for /f "delims=" %%i in ('"%PPY%" detect_cuda.py 2^>nul') do set "CUDA_TAG=%%i"
 if "%CUDA_TAG%"=="" set "CUDA_TAG=cu121"
 if /I "%CUDA_TAG%"=="none" (
-  echo.
+  echo(
   echo [WARN] No NVIDIA GPU / driver detected by nvidia-smi.
   echo        NoaTTS needs an NVIDIA GPU with an up-to-date driver.
   echo        Continuing with a default CUDA build, but it may not run.
   echo        Install the latest NVIDIA driver and re-run this if it fails.
-  echo.
+  echo(
   set "CUDA_TAG=cu121"
 )
 
@@ -45,7 +45,7 @@ REM --- 2) install torch (CUDA-matched) ---
 echo [1/2] Installing torch (CUDA=%CUDA_TAG%) ...
 "%PPY%" -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/%CUDA_TAG%
 if errorlevel 1 (
-  echo.
+  echo(
   echo [ERROR] Failed to install torch.
   echo   Likely causes:
   echo     - No internet connection / proxy blocking the download
@@ -59,7 +59,7 @@ REM --- 3) install the rest of the dependencies ---
 echo [2/2] Installing remaining dependencies ...
 "%PPY%" -m pip install -r requirements.txt
 if errorlevel 1 (
-  echo.
+  echo(
   echo [ERROR] Failed to install dependencies.
   echo   Likely causes:
   echo     - 'git' is not installed (some engines are pulled from GitHub)
@@ -79,16 +79,16 @@ if errorlevel 1 (
   echo        Not fatal - NoaTTS will download it on first launch instead.
 )
 
-echo.
+echo(
 echo === Setup complete. Launching NoaTTS... ===
 endlocal
 exit /b 0
 
 :fail
-echo.
+echo(
 echo Setup did not finish. NoaTTS will not start yet.
 echo Re-run NoaTTS-Start.bat after fixing the issue above.
-echo.
+echo(
 pause
 endlocal
 exit /b 1
