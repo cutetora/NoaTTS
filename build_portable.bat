@@ -91,12 +91,30 @@ REM 5) zip it
 echo [zip] compressing...
 powershell -NoProfile -Command "Compress-Archive -Path '%DIST%\*' -DestinationPath 'dist\NoaTTS-portable-%MODE%.zip' -Force"
 
+REM 6) optional: build NoaTTS-Setup.exe via Inno Setup (set INNO=1 to enable)
+REM    Requires Inno Setup (ISCC.exe) installed: https://jrsoftware.org/isdl.php
+if not "%INNO%"=="1" goto :skip_inno
+echo [inno] building installer (NoaTTS-Setup.exe)...
+set "ISCC="
+for %%p in ("%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe" "%ProgramFiles%\Inno Setup 6\ISCC.exe") do (
+  if exist "%%~p" set "ISCC=%%~p"
+)
+if not defined ISCC ( where ISCC >nul 2>&1 && set "ISCC=ISCC" )
+if not defined ISCC (
+  echo [inno] ISCC.exe not found. Install Inno Setup 6, then re-run with INNO=1.
+) else (
+  "%ISCC%" installer.iss
+  if errorlevel 1 ( echo [inno] !!! installer build failed. ) else ( echo [inno] -^> Output\NoaTTS-Setup.exe )
+)
+:skip_inno
+
 echo.
 echo === Done (%MODE%) ===
 echo   Folder : %DIST%
 echo   ZIP    : dist\NoaTTS-portable-%MODE%.zip
+if "%INNO%"=="1" echo   Installer: Output\NoaTTS-Setup.exe (if Inno Setup was found)
 if "%MODE%"=="THIN" echo   THIN (~200MB). On first launch it downloads torch (auto-CUDA) + models.
 if "%MODE%"=="FULL" echo   FULL (~4-5GB, torch bundled). First launch downloads models only.
-echo   Users just extract and run NoaTTS-Start.bat.
+echo   Users just extract and run NoaTTS-Start.bat (or run the installer exe).
 echo.
 pause

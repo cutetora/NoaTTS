@@ -63,27 +63,30 @@ set CUDA_TAG=cu128 & set FULL=1 & build_portable.bat
 
 ---
 
-## さらに「.exe インストーラ」にしたい場合（任意・上級）
+## 「.exe インストーラ」にする（Windows 向けおまけ）
 
-`dist\NoaTTS-portable\` を **Inno Setup**（無料）で包むと、ダブルクリックで入る `NoaTTS-Setup.exe` が作れる。最小の `installer.iss` 例:
+リポジトリ同梱の **[installer.iss](../installer.iss)** を **Inno Setup**（無料）でコンパイルすると、
+ダブルクリックで入る `Output\NoaTTS-Setup.exe` が作れる。`dist\NoaTTS-portable\`（= `build_portable.bat`
+の生成物）を丸ごと包む構成なので、**先に `build_portable.bat` を実行**してから作る。
 
-```ini
-[Setup]
-AppName=NoaTTS
-AppVersion=1.1.0
-DefaultDirName={autopf}\NoaTTS
-DefaultGroupName=NoaTTS
-OutputBaseFilename=NoaTTS-Setup
-Compression=lzma2
-SolidCompression=yes
-
-[Files]
-Source: "dist\NoaTTS-portable\*"; DestDir: "{app}"; Flags: recursesubdirs
-
-[Icons]
-Name: "{group}\NoaTTS"; Filename: "{app}\python\pythonw.exe"; Parameters: "tray.py"; WorkingDir: "{app}"
-Name: "{commondesktop}\NoaTTS"; Filename: "{app}\python\pythonw.exe"; Parameters: "tray.py"; WorkingDir: "{app}"
+**作り方A（自動・推奨）**: Inno Setup 6 を入れて `INNO=1` を付けるだけ。
+```bat
+set INNO=1 & build_portable.bat
 ```
+→ ビルド完了後、`ISCC.exe` を自動で見つけて `Output\NoaTTS-Setup.exe` まで生成する。
+
+**作り方B（手動）**: `installer.iss` を Inno Setup Compiler で開いて Compile。
+
+### 設計の要点（なぜこの構成か）
+- **インストール先は `{localappdata}\NoaTTS`**（管理者権限不要）。`Program Files` を避けるのは、
+  **初回起動の `first_run_setup.bat` が `python\` 配下へ torch/依存を書き込む**ため
+  （Program Files は読み取り専用で pip install が失敗する）。
+- **THIN を維持**: インストーラを使っても初回起動で torch(自動CUDA)+モデルを DL する。
+  `first_run_setup.bat` / `NoaTTS-Start.bat` は**消さない**（将来 Mac/Linux 版の土台にもなる）。
+- ショートカットは `NoaTTS-Start.bat` を指す（アイコンは `assets\noa.ico`）。
+
+> ⚠️ Inno Setup は **Windows 専用**。Mac/Linux はこの .exe ではなく、THIN 土台の
+> ランチャー（`.bat`→`.sh`/`.command` 置換）や `pip` 配布で対応する想定。
 
 ---
 

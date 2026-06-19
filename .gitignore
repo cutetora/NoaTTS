@@ -35,6 +35,8 @@ assets/_studio_vram.txt
 # ポータブル配布のビルド成果物 (build_portable.bat)
 dist/
 _build_venv/
+# Inno Setup の出力 (installer.iss -> NoaTTS-Setup.exe)
+Output/
 
 # 開発用の Claude Code スキル等 (配布物には不要)
 .claude/
