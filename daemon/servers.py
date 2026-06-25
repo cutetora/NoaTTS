@@ -8,7 +8,7 @@ from .runtime import (
     DAEMON_PID_PATH, CACHE_DIR, _stop_event, dispatch_speak, stop_speaking,
 )
 from .textproc import clean_text
-from .tuning import _set_gap, _set_nosplit, _set_firstcut
+from .tuning import _set_gap, _set_nosplit, _set_firstcut, _set_tailpad
 from .panel_html import CONTROL_PANEL_HTML
 from .worker import TTSWorker
 
@@ -193,7 +193,7 @@ def http_server(worker):
                                  "speaking": is_speaking(), "port": HTTP_PORT,
                                  "speed": worker.speed, "gap": tuning._gap_sec,
                                  "pause": worker.pause, "firstcut": tuning._first_cut,
-                                 "nosplit": tuning._nosplit,
+                                 "nosplit": tuning._nosplit, "tailpad": tuning._tail_pad_sec,
                                  "auto": FLAG_PATH.exists(),
                                  "model": getattr(worker, "_model_repo", None)})
             elif path == "/autostatus":
@@ -330,6 +330,24 @@ def http_server(worker):
                     self._json(200, {"ok": True, "gap": newgap})
                 except (TypeError, ValueError):
                     self._json(400, {"ok": False, "error": "invalid gap"})
+                return
+
+            if path == "/tailpad":
+                # 末尾余韻(秒)を変更。語尾欠け防止。再起動不要・tailpad.txt永続化。
+                body = raw.decode("utf-8", errors="replace").strip()
+                val = body
+                ctype = (self.headers.get("Content-Type") or "").lower()
+                if "application/json" in ctype:
+                    try:
+                        val = json.loads(body or "{}").get("tailpad", "")
+                    except Exception:
+                        self._json(400, {"ok": False, "error": "invalid json"})
+                        return
+                try:
+                    newpad = _set_tailpad(float(val))
+                    self._json(200, {"ok": True, "tailpad": newpad})
+                except (TypeError, ValueError):
+                    self._json(400, {"ok": False, "error": "invalid tailpad"})
                 return
 
             if path == "/nosplit":
