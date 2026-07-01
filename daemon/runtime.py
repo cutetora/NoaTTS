@@ -82,6 +82,21 @@ def dispatch_speak(worker, cleaned: str, caption=None, cache=None):
         t.start()
 
 
+def dispatch_dialogue(worker, segments, cache=None):
+    """複数キャラの掛け合いを声を切り替えながら連続再生する (HTTP /say_dialogue 用)。
+    前の読み上げをキャンセルして新規開始する点は dispatch_speak と同じ。
+    segments: [{"voice","text","caption?"}, ...]"""
+    global _current_speak_thread
+    with _speak_lock:
+        worker.cancel()
+        prev = _current_speak_thread
+        if prev is not None and prev.is_alive():
+            prev.join(timeout=2.0)
+        t = threading.Thread(target=worker.speak_dialogue, args=(segments, cache), daemon=True)
+        _current_speak_thread = t
+        t.start()
+
+
 def stop_speaking(worker):
     """読み上げを中断する (HTTP /stop 用)。"""
     global _current_speak_thread

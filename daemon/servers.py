@@ -5,7 +5,7 @@ from pathlib import Path
 from daemon import runtime, tuning
 from .runtime import (
     PIPE_NAME, SAY_FILE, FLAG_PATH, VOICES_DIR, HTTP_HOST, HTTP_PORT,
-    DAEMON_PID_PATH, CACHE_DIR, _stop_event, dispatch_speak, stop_speaking,
+    DAEMON_PID_PATH, CACHE_DIR, _stop_event, dispatch_speak, dispatch_dialogue, stop_speaking,
 )
 from .textproc import clean_text
 from .tuning import _set_gap, _set_nosplit, _set_firstcut, _set_tailpad
@@ -534,6 +534,49 @@ def http_server(worker):
                 self._send(200, data, ctype="audio/wav")
                 return
 
+            if path == "/say_dialogue":
+                # 複数キャラの掛け合いを声を切り替えながら連続再生する。
+                #   {"segments": [{"voice":"sara","text":"...","caption":"<任意>"}, ...],
+                #    "cache": true/false(任意)}
+                # voice 省略/null はアクティブ声。実在しない voice は400。
+                body = raw.decode("utf-8", errors="replace").strip()
+                try:
+                    obj = json.loads(body) if body else {}
+                except Exception:
+                    self._json(400, {"ok": False, "error": "invalid json"})
+                    return
+                if not isinstance(obj, dict):
+                    self._json(400, {"ok": False, "error": "invalid json"})
+                    return
+                raw_segs = obj.get("segments")
+                if not isinstance(raw_segs, list) or not raw_segs:
+                    self._json(400, {"ok": False, "error": "segments must be a non-empty list"})
+                    return
+                cache = bool(obj["cache"]) if "cache" in obj else None
+                segments = []
+                for s in raw_segs:
+                    if not isinstance(s, dict):
+                        continue
+                    txt = clean_text(str(s.get("text", "") or "").strip())
+                    if not txt:
+                        continue
+                    voice = str(s.get("voice", "") or "").strip() or None
+                    if voice and not (Path(VOICES_DIR) / voice / "config.json").exists():
+                        self._json(400, {"ok": False, "error": f"unknown voice: {voice}"})
+                        return
+                    segments.append({
+                        "voice": voice,
+                        "text": txt,
+                        "caption": str(s.get("caption", "") or "").strip() or None,
+                    })
+                if not segments:
+                    self._json(400, {"ok": False, "error": "nothing to speak after cleanup"})
+                    return
+                print(f"[daemon] /say_dialogue 受信 ({len(segments)}セグメント)", flush=True)
+                dispatch_dialogue(worker, segments, cache=cache)
+                self._json(200, {"ok": True, "segments": len(segments)})
+                return
+
             if path != "/say":
                 self._json(404, {"ok": False, "error": "not found"})
                 return
@@ -542,6 +585,7 @@ def http_server(worker):
             text = body
             caption = None  # None=ボイスカードの default_caption に従う
             cache = None    # None=既定のキャッシュON/OFFに従う / True/Falseでこの回だけ上書き
+            voice = None    # None=アクティブ声 / 声IDでこの読み上げだけ別キャラ
             ctype = (self.headers.get("Content-Type") or "").lower()
             if "application/json" in ctype:
                 try:
@@ -559,6 +603,9 @@ def http_server(worker):
                     # 音声キャッシュ(使い回し): この読み上げに限りON/OFF上書き。
                     if "cache" in obj:
                         cache = bool(obj.get("cache"))
+                    # 声指定: この読み上げだけ別キャラの声で読む(アクティブ声は変えない)。
+                    if "voice" in obj:
+                        voice = str(obj.get("voice") or "").strip() or None
                 except Exception:
                     self._json(400, {"ok": False, "error": "invalid json"})
                     return
@@ -576,8 +623,20 @@ def http_server(worker):
                 self._json(400, {"ok": False, "error": "nothing to speak after cleanup"})
                 return
 
-            print(f"[daemon] HTTP受信 ({len(cleaned)}字)", flush=True)
-            dispatch_speak(worker, cleaned, caption=caption, cache=cache)
+            # voice指定があり実在すれば、その声で読む(1セグメントの掛け合いとして処理)。
+            if voice and not (Path(VOICES_DIR) / voice / "config.json").exists():
+                self._json(400, {"ok": False, "error": f"unknown voice: {voice}"})
+                return
+
+            print(f"[daemon] HTTP受信 ({len(cleaned)}字{', voice='+voice if voice else ''})", flush=True)
+            if voice:
+                dispatch_dialogue(
+                    worker,
+                    [{"voice": voice, "text": cleaned, "caption": caption}],
+                    cache=cache,
+                )
+            else:
+                dispatch_speak(worker, cleaned, caption=caption, cache=cache)
             self._json(200, {"ok": True, "chars": len(cleaned)})
 
     try:
