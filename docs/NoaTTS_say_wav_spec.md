@@ -2,7 +2,7 @@
 
 ## 背景
 既存 `POST /say` はサーバーPCのスピーカーで再生し、応答は `{"ok":true,"chars":N}`。WAVは返さない。
-みるくADV（Unity）は「クライアントがWAVバイト列を受け取り自前で再生」する設計のため、
+Unityクライアントは「クライアントがWAVバイト列を受け取り自前で再生」する設計のため、
 **再生ではなくWAVを返すAPI** `/say_wav` を新規追加した。`/say` は一切変更していない（役割分離）。
 
 ## エンドポイント
@@ -80,7 +80,7 @@ curl -s -X POST http://127.0.0.1:7870/say_wav \
 
 > **反映には daemon の再起動が必要**（実行中プロセスは旧コードを保持しているため）。
 
-## クライアント側（みるくADV / main.py）
+## クライアント側（Unity / main.py）
 ```
 TTS_URL = "http://127.0.0.1:7870/say_wav"
 payload = {"text": text, "voice": "noa"}   # 旧: {model,input,voice,response_format}

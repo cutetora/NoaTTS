@@ -272,13 +272,19 @@ class TTSWorker:
             wav = adjust_speed(wav, sr, float(speed))
         return wav, sr
 
-    def _generate_one(self, text: str):
-        vc = self._vc
-        # 感情caption (Irodoriクローン): HTTP /say で一時指定があれば優先、
-        # 無ければボイスカードの既定感情(default_caption)。clone_promptは
-        # 通常モデルのlatentキャッシュなので、caption使用時はエンジン側で
+    def _generate_one(self, text: str, vc=None, clone_prompt=None, caption=None):
+        """1文を合成(+キャッシュ)する。
+        vc/clone_prompt が None ならアクティブ声(self._vc)を使う。
+        複数キャラ読み上げでは呼び出し側が一時ロードした vc を渡す。
+        caption が None なら _caption_override → ボイス既定 の順でフォールバック。"""
+        if vc is None:
+            vc = self._vc
+            clone_prompt = self._clone_prompt
+        # 感情caption (Irodoriクローン): 引数指定 > HTTP /say の一時指定 > ボイス既定。
+        # clone_promptは通常モデルのlatentキャッシュなので、caption使用時はエンジン側で
         # ref_wav へフォールバックされる。
-        caption = getattr(self, "_caption_override", None)
+        if caption is None:
+            caption = getattr(self, "_caption_override", None)
         if caption is None:
             caption = getattr(vc, "default_caption", "") or ""
         # 音声内の「、」「。」等のポーズ上限。0なら無加工。
@@ -299,7 +305,7 @@ class TTSWorker:
                     return wav, sr
                 except Exception as e:
                     print(f"[daemon] cache読み込み失敗(再生成): {e}", flush=True)
-            wav, sr = self._gen_core(text, vc, self._clone_prompt, caption, pause_cap, speed)
+            wav, sr = self._gen_core(text, vc, clone_prompt, caption, pause_cap, speed)
             try:
                 CACHE_DIR.mkdir(exist_ok=True)
                 sf.write(str(cpath), wav, sr)
@@ -308,7 +314,7 @@ class TTSWorker:
                 print(f"[daemon] cache保存失敗: {e}", flush=True)
             return wav, sr
 
-        return self._gen_core(text, vc, self._clone_prompt, caption, pause_cap, speed)
+        return self._gen_core(text, vc, clone_prompt, caption, pause_cap, speed)
 
     def _load_vc_only(self, voice_name: str):
         """指定ボイスの (vc, clone_prompt) を self を汚さず読み込んで返す。
@@ -366,6 +372,10 @@ class TTSWorker:
                 merged = np.concatenate([merged, sil, p])
         else:
             merged = parts[0] if len(parts) == 1 else np.concatenate(parts)
+        # 末尾余韻: 語尾が trim_silence で切れるのを防ぐ無音を足す。
+        tail = float(getattr(tuning, "_tail_pad_sec", 0.0) or 0.0)
+        if tail > 0:
+            merged = np.concatenate([merged, np.zeros(int(tail * sr), dtype=np.float32)])
         return merged, sr
 
     def speak(self, text: str, caption=None, cache=None):
@@ -416,6 +426,94 @@ class TTSWorker:
                     print(f"[daemon] 生成失敗: {e}", flush=True)
             gen_q.put(None)
 
+        self._run_play_loop(producer, gen_q)
+
+    def speak_dialogue(self, segments, cache=None):
+        """複数キャラの掛け合いを声を切り替えながら連続再生する。
+        segments: [{"voice": "<声ID|None>", "text": "...", "caption": "<任意>"}, ...]
+                  voice 省略/None はアクティブ声。別IDは一時ロード(同checkpoint前提)。
+        cache:    キャッシュON/OFF上書き (None=既定に従う)。各セグメントの
+                  文+声+感情+速度でキャッシュされる。
+        声切替は1セグメントごと。大量キャラでなければ都度ロードのコストは軽い。"""
+        import soundfile as sf
+
+        self._cache_override = cache
+        self._cancel.clear()
+
+        # セグメントを正規化(空textは捨てる)。
+        segs = []
+        for s in (segments or []):
+            if not isinstance(s, dict):
+                continue
+            txt = str(s.get("text", "") or "").strip()
+            if not txt:
+                continue
+            segs.append({
+                "voice": (str(s.get("voice", "") or "").strip() or None),
+                "text": txt,
+                "caption": (str(s.get("caption", "") or "").strip() or None),
+            })
+        if not segs:
+            print("[daemon] dialogue: 有効なセグメントなし", flush=True)
+            return
+        print(f"[daemon] dialogue {len(segs)} セグメント", flush=True)
+
+        TMP_SAY_DIR.mkdir(exist_ok=True)
+        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # 声カードのロードはコストがあるので同一声は使い回す(セグメント間キャッシュ)。
+        vc_cache = {}
+
+        def resolve_vc(voice):
+            if not voice or voice == self.voice_name:
+                return self._vc, self._clone_prompt
+            if voice not in vc_cache:
+                vc_cache[voice] = self._load_vc_only(voice)
+            return vc_cache[voice]
+
+        gen_q: queue.Queue = queue.Queue()
+
+        def producer():
+            idx = 0
+            for s in segs:
+                if self._cancel.is_set():
+                    gen_q.put(None)
+                    return
+                try:
+                    vc, clone_prompt = resolve_vc(s["voice"])
+                except Exception as e:
+                    print(f"[daemon] dialogue 声ロード失敗 ({s['voice']}): {e}", flush=True)
+                    continue
+                # セグメント本文をさらに文分割して順次合成(間が空きすぎないように)。
+                for sent in _split_sentences(s["text"]):
+                    if self._cancel.is_set():
+                        gen_q.put(None)
+                        return
+                    try:
+                        wav, sr = self._generate_one(
+                            sent, vc=vc, clone_prompt=clone_prompt, caption=s["caption"])
+                        if self.volume < 1.0:
+                            wav = wav * float(self.volume)
+                        idx += 1
+                        p = TMP_SAY_DIR / f"noa_tts_{ts}_d{idx:03d}.wav"
+                        sf.write(str(p), wav, sr)
+                        gen_q.put(p)
+                        try:
+                            import torch as _torch
+                            if _torch.cuda.is_available():
+                                _torch.cuda.empty_cache()
+                        except Exception:
+                            pass
+                        print(f"[daemon] dialogue 生成 {idx} ({s['voice'] or self.voice_name})", flush=True)
+                    except Exception as e:
+                        print(f"[daemon] dialogue 生成失敗: {e}", flush=True)
+            gen_q.put(None)
+
+        self._run_play_loop(producer, gen_q)
+
+    def _run_play_loop(self, producer, gen_q):
+        """producer が gen_q に積む WAV パスを、連続ストリームで途切れなく再生する。
+        speak() / speak_dialogue() 共通の再生ループ。None で終端。"""
         t = threading.Thread(target=producer, daemon=True)
         t.start()
 
@@ -439,6 +537,10 @@ class TTSWorker:
                     player.feed_silence(tuning._gap_sec)  # 文間ギャップも同一ストリームで(継ぎ目なし)
                 first = False
                 player.feed_wav(p)  # 生成済みWAVを流し込む(再生終わりまでブロック)
+            # 末尾余韻: 最後の文の語尾が trim_silence で切り詰められているため、
+            # close 前に無音を流して「最後まで鳴り切ってから」閉じる(語尾欠け防止)。
+            if not first and not self._cancel.is_set() and tuning._tail_pad_sec > 0:
+                player.feed_silence(tuning._tail_pad_sec)
         finally:
             player.close()
             self._player = None

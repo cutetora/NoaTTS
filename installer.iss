@@ -17,7 +17,7 @@
 ; ============================================================
 
 #define MyAppName "NoaTTS"
-#define MyAppVersion "1.2.0"
+#define MyAppVersion "1.3.0"
 #define MyAppPublisher "cutetora"
 #define MyAppURL "https://github.com/cutetora/NoaTTS"
 ; Prefer the icon'd exe launcher; the bat is also installed as a fallback.

@@ -7,7 +7,7 @@ import threading
 
 from daemon import tuning
 from .runtime import BASE_DIR, DEFAULT_VOICE, DAEMON_PID_PATH, _stop_event, cleanup_tmp_say
-from .tuning import _load_gap, _load_firstcut, _load_nosplit
+from .tuning import _load_gap, _load_firstcut, _load_nosplit, _load_tailpad
 from .worker import TTSWorker
 from .servers import pipe_server, file_watcher, http_server
 
@@ -34,7 +34,8 @@ def main():
     _load_gap()  # gap.txt があれば文間無音を復元
     _load_firstcut()  # firstcut.txt があれば1文目早切り設定を復元
     _load_nosplit()  # nosplit.txt があれば分割しない閾値を復元
-    print(f"[daemon] gap:{tuning._gap_sec}秒 firstcut:{tuning._first_cut}字 nosplit:{tuning._nosplit}字", flush=True)
+    _load_tailpad()  # tailpad.txt があれば末尾余韻を復元
+    print(f"[daemon] gap:{tuning._gap_sec}秒 firstcut:{tuning._first_cut}字 nosplit:{tuning._nosplit}字 tailpad:{tuning._tail_pad_sec}秒", flush=True)
 
     # 読み上げの使い捨て一時WAV(tmp_say/)を掃除。増え続けるのを防ぐ。
     cleanup_tmp_say()

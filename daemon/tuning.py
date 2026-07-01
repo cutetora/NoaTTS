@@ -111,3 +111,30 @@ def _set_gap(sec: float) -> float:
     except Exception:
         pass
     return _gap_sec
+
+
+# 末尾余韻(秒): 読み上げの最後に足す無音。trim_silence が語尾の余韻まで
+# 切り詰めるため、これが無いと最後の音が鳴り切る前にプツッと切れる(語尾欠け)。
+# /tailpad エンドポイントで実行中に変更でき、tailpad.txt に永続化される。
+TAILPAD_FILE = BASE_DIR / "tailpad.txt"
+_tail_pad_sec = 0.25  # デフォルト(0で無効)
+
+
+def _load_tailpad():
+    global _tail_pad_sec
+    try:
+        if TAILPAD_FILE.exists():
+            v = float(TAILPAD_FILE.read_text(encoding="utf-8").strip())
+            _tail_pad_sec = max(0.0, min(2.0, v))
+    except Exception:
+        pass
+
+
+def _set_tailpad(sec: float) -> float:
+    global _tail_pad_sec
+    _tail_pad_sec = max(0.0, min(2.0, float(sec)))
+    try:
+        TAILPAD_FILE.write_text(str(_tail_pad_sec), encoding="utf-8")
+    except Exception:
+        pass
+    return _tail_pad_sec
