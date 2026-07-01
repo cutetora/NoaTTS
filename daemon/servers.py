@@ -493,7 +493,7 @@ def http_server(worker):
                 return
 
             if path == "/say_wav":
-                # 合成WAVを返す(鳴らさない)。みるくADV(Unity)等クライアント再生用。
+                # 合成WAVを返す(鳴らさない)。Unity等クライアント再生用。
                 # /say とは役割分離: 再生せず、24kHz/mono/16bit PCM のバイト列を同期返却。
                 # output/ 共有ファイルに依存せずメモリ生成 → 並行リクエストでも取り違えない。
                 from engine.audio_utils import to_wav_bytes
