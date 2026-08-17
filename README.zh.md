@@ -1,3 +1,9 @@
+[![Release](https://img.shields.io/github/v/release/cutetora/NoaTTS?color=ff69b4)](https://github.com/cutetora/NoaTTS/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/cutetora/NoaTTS/total?color=success)](https://github.com/cutetora/NoaTTS/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Windows-0078D6)](#)
+[![Engine](https://img.shields.io/badge/engine-Irodori--TTS%20%7C%20Qwen3--TTS-8A2BE2)](#)
+
 <div align="left">
   <img src="https://count.getloli.com/get/@cutetora-noatts?theme=moebooru" alt="visitors" height="32">
 </div>
