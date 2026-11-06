@@ -302,8 +302,14 @@ HTML = r"""<!DOCTYPE html>
   pre{background:#141019;border:1px solid var(--line);border-radius:8px;
     padding:11px 13px;overflow-x:auto;font-size:12.5px;color:#d7cce6;margin:8px 0;
     font-family:"Cascadia Code","Consolas",monospace;}
-  .copy{float:right;font-size:11px;padding:2px 8px;background:#332a42;border-radius:5px;
-    cursor:pointer;color:var(--muted);} .copy:hover{color:var(--ink);}
+  /* コードブロックは「見出し行(言語名+copyボタン) + pre」の2段。copy を pre の中に float で
+     置くと、長い行の文字がボタンに重なってクリックが pre に吸われていた。 */
+  .code{margin:10px 0;}
+  .code-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;
+    font-size:12px;color:var(--muted);}
+  .code pre{margin:0;}
+  .copy{background:#3a3048;color:var(--ink);border-radius:8px;padding:6px 16px;min-width:76px;
+    font-size:12.5px;font-weight:600;cursor:pointer;} .copy:hover{filter:brightness(1.2);}
   details{margin-top:6px;} summary{cursor:pointer;color:var(--muted);font-size:13px;}
 </style></head>
 <body><div class="wrap">
@@ -387,8 +393,8 @@ HTML = r"""<!DOCTYPE html>
     <h2>外部から叩く (API)</h2>
     <details><summary>使い方を表示</summary>
       <p style="font-size:12.5px;color:var(--muted);">開発タスクの末尾に一行足すだけで完了通知を読み上げます。</p>
-      <pre><span class="copy" onclick="cp(this)">copy</span>curl -X POST http://127.0.0.1:7870/say -d "ビルドが完了いたしました"</pre>
-      <pre><span class="copy" onclick="cp(this)">copy</span>Invoke-RestMethod http://127.0.0.1:7870/say -Method Post -Body "テストが通りました"</pre>
+      <div class="code"><div class="code-h"><span>curl</span><button class="copy" onclick="cp(this)">copy</button></div><pre>curl -X POST http://127.0.0.1:7870/say -d "ビルドが完了いたしました"</pre></div>
+      <div class="code"><div class="code-h"><span>PowerShell</span><button class="copy" onclick="cp(this)">copy</button></div><pre>Invoke-RestMethod http://127.0.0.1:7870/say -Method Post -Body "テストが通りました"</pre></div>
     </details>
   </div>
 </div>
@@ -579,7 +585,9 @@ async function stopSpeak(){ await api.stop_speaking();
   document.getElementById('tmsg').textContent='中断しました。'; }
 
 async function cp(el){
-  const txt=el.parentNode.textContent.replace(/^copy/,'').trim();
+  // ボタンの文言 (copy/copied) に頼らず、対応する pre から直接読む
+  // (copied 表示中に押し直すと "ied…" が混ざっていた)
+  const txt=el.closest('.code').querySelector('pre').textContent.trim();
   let ok=false;
   try { const r=await api.copy(txt); ok=r && r.ok; } catch(e){}
   if(!ok){ // フォールバック (セキュアコンテキストなら効く)
