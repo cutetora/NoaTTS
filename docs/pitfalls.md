@@ -32,3 +32,26 @@
 - `volume` は「以降の読み上げにも続く」仕様（`voice`/`speed`/`caption`/`cache` は「その回だけ」）。README に明記済み。
 - `caption` は 省略/`null`=ボイス既定、`""`=感情なし。`cache` の `null` は「指定なし」。クライアントの意味が変わるので、変更時は README の「変わる点」に書く。
 - 音声キャッシュのキー（`TTSWorker._cache_path`）は変えない。変えると既存のキャッシュがすべて使われないまま残る。
+
+## インストーラーの更新（`installer.iss` / `installer/stop_app.ps1`）
+
+- **更新で上書きされる＝配布物に入っているファイル。** `ignoreversion` で全部上書きする。利用者が書き換えるファイルを配布物に入れない
+  （ボイスの `config.json`、`conf/settings.json`、`gap.txt` 等は実行時に作られるので安全）。配布物に入っていて利用者が追記する
+  `conf/reading_dict.json` だけは `onlyifdoesntexist` にしてある（代償: 将来の版で既定の辞書が増えても既存の利用者には届かない）。
+- **更新前にアプリを止める。** Inno 標準の「使用中のアプリを閉じる」はウィンドウの無い `pythonw` を閉じられず、無人実行
+  （`/VERYSILENT`）では中断してロールバックする。`PrepareToInstall` で `stop_app.ps1` を呼ぶ。止める対象はインストール先配下の
+  プロセスだけで、別の場所（開発フォルダなど）の daemon には `/quit` を送らない。
+- **`requirements.txt` が変わった更新では、`installer/update_deps.py` が `pip install -r` を走らせる。** `site-packages	orch` がある環境だけ。
+  torch が無い環境で入れると CPU 版の torch が入って動かなくなる。さらに torch / torchaudio / torchvision は「今入っている版」に
+  固定して（`-c`）実行するので、要求が食い違うと置き換わらずに pip が失敗して止まる（CUDA 版は守られる）。
+  最後に入れ終えた `requirements.txt` のハッシュを `python\.req_sha256` に持ち、成功したときだけ書き換える（失敗した更新は、
+  インストーラーを再実行すると再試行される）。印が無い環境は、上書き前の `requirements.txt` のハッシュを印にする。
+  失敗しても `/VERYSILENT` の終了コードは 0 のまま（ログと、画面付きの場合のメッセージで知らせる）。
+  `NoaTTS.exe`（PyInstaller 製）は依存の変化を見ないので、ZIP を上書き展開して更新する人には効かない。
+- **`stop_app.ps1` はプロセスツリーごと止めない。** インストール先配下の実行ファイルだけを `Stop-Process` する（アプリが開いた
+  ブラウザなど、利用者のプログラムを巻き込まないため）。インストール先が浅い場所（`D:\` など）や、`python\python.exe` と
+  `NoaTTS.exe` が無いフォルダのときは何も止めない。
+- ローカルで `build_portable.bat` を回すと、手元の `voices\` が丸ごと配布物に入る（CI は Git 管理分の `noa` / `man` だけ）。
+  その配布物でインストーラーを作ると、開発用のボイスや `config.json` が入る。リリースは CI のビルドで行う。
+- アンインストールは `python\` 配下（初回セットアップで入った torch 等）を消さない。Inno は自分が入れたファイルしか消さないため。
+- `.iss` は日本語を含むので UTF-8 の BOM が要る（無いと文字化けする）。
