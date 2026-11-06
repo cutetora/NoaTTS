@@ -21,6 +21,22 @@ The tricky settings? The mascot "Noa" walks you through them right on screen.
 > If it does, it'll most likely run. If it doesn't (e.g. only the integrated graphics of a laptop), it unfortunately won't work.
 > **Windows** is recommended for the OS. **An internet connection is only needed for the first-time setup** (it runs offline after that).
 
+<a id="whats-new"></a>
+
+## 🆕 What's new
+
+| Version | Highlights |
+|---|---|
+| **v1.4.2** | README refresh (this section and the Design → Clone card guide) |
+| **v1.4.1** | **Update in place with the installer.** You can update while the app is running; your voices, settings and reading-dictionary edits are kept |
+| **v1.4.0** | **Save a designed voice straight as a clone card** ([guide](#design-to-clone)) / **voice cleanup with a trash bin** / unified read-aloud API options |
+
+See [CHANGELOG.md](CHANGELOG.md) and [Releases](https://github.com/cutetora/NoaTTS/releases) for details.
+
+> **How to update**
+> - **Installer version**: just run the new `NoaTTS-Setup.exe` (the app may stay running). Your voices and settings are kept.
+> - **Portable ZIP version**: quit the app and **extract over** your current folder. Your voices and settings are kept. If you have added entries to the reading dictionary (`conf/reading_dict.json`), back it up first (it is overwritten).
+
 ## 🔊 Hear it first (audio samples · click to play)
 
 | Sample | Description |
@@ -51,6 +67,45 @@ The tricky settings? The mascot "Noa" walks you through them right on screen.
 
 > Tune seed / speed / temperature and preview before saving.
 > ![Voice tuning](assets/screenshots/voice-tuning.png)
+
+<a id="design-to-clone"></a>
+
+### Designed voice → clone card in one click (v1.4.0+)
+
+Voice Design builds a voice from a text description, but **the voice drifts a little every time you generate**.
+Turn a sample you like into a **clone card with one click** and it stays fixed, giving you a voice card that does not waver on any line.
+
+```mermaid
+flowchart LR
+  A["1. Write the voice description<br/>(Voice Design)"] --> B["2. Generate 5 samples<br/>(different seeds)"]
+  B --> C["3. Pick the closest one"]
+  C --> D["4. Save as clone card"]
+  D --> E["Done: a card with a fixed voice"]
+```
+
+**How** (Voice Studio → "Voice Design" tab. The app's screen is in Japanese; the original labels are shown in parentheses)
+
+1. Write the voice description. Make the **test sentence 4–10 seconds long when spoken** (this audio becomes the clone's reference).
+2. Set the number of samples to **5** and press the generate button (サンプル生成). Listen to the samples (each with a different `seed=…`) and pick the one closest to what you imagined.
+3. Choose it with "sample number to save" (保存サンプル番号) and name the card in "clone card name" (クローンカード名; empty = "<name>_clone").
+4. Press **"Save as clone card" (クローンカードとして保存)**.
+
+**What is carried over automatically**
+
+| Made in Voice Design | In the clone card |
+|---|---|
+| Audio of the chosen sample | Reference audio (leading/trailing silence is trimmed) |
+| The test sentence used to make it | Transcript of the reference audio |
+| The sample's seed | The card's seed |
+
+The cache used for read-aloud is also built on save, so the card is ready to use right away.
+
+**Notes**
+- Aim for a reference of **3–10 seconds**. Outside that range you get a warning (the card is still saved; changing the test sentence length and regenerating makes it steadier).
+- If a card with the same name exists, it is **not overwritten by default**. Tick "allow overwriting a card of the same name" (同名カードがあれば上書きを許可) to replace it. If saving fails, the original card is restored, and the tick is cleared after every save.
+- The **reference audio** decides the voice quality. The clone's seed only fixes the intonation jitter, so carrying over the seed does not by itself decide the timbre.
+
+You can also do it by hand: download the sample, put it into "Reference audio" on the Voice Clone tab (ボイスクローン), then "Generate clone" → "Save".
 
 ### 🥺 Add emotion
 Drop emojis like **😭😠🥺** into your text, and **the emotion comes through while the voice stays the same** (Irodori).
@@ -393,7 +448,7 @@ The `.py` files directly at the root are the entry points (`app.py` / `tray.py` 
 
 ## Changelog
 
-For changes, see [CHANGELOG.md](CHANGELOG.md). The latest version is **v1.2.0** (one-click distribution · portable version).
+For changes, see [CHANGELOG.md](CHANGELOG.md). The latest version is **v1.4.2**. Recent changes are summarized in [What's new](#whats-new).
 
 ---
 
