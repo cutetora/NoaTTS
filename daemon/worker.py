@@ -85,10 +85,18 @@ class TTSWorker:
         どれか1つでも変われば別ファイルになる(別音声として扱う)。"""
         voice_id = getattr(vc, "name", None) or getattr(vc, "voice_type", "") or self.voice_name
         seed = getattr(vc, "seed", "")
+        # 同名カードを別の声で作り直しても(例: デザイン→クローンへ上書き、seed が同じ)、
+        # 古い声のWAVを再生しないよう、種別と参照音声の実体(サイズ+更新時刻)もキーに入れる。
+        ref_sig = ""
+        try:
+            st = os.stat(getattr(vc, "ref_audio_path", "") or "")
+            ref_sig = f"{st.st_size}:{int(st.st_mtime)}"
+        except OSError:
+            pass
         key = "\x1f".join([
             str(voice_id), str(text), str(caption or ""),
             f"{float(speed or 1.0):.4f}", f"{float(pause_cap or 0.0):.4f}",
-            str(seed),
+            str(seed), str(getattr(vc, "voice_type", "")), ref_sig,
         ])
         h = hashlib.sha1(key.encode("utf-8")).hexdigest()
         return CACHE_DIR / f"{h}.wav"
