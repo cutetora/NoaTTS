@@ -259,7 +259,7 @@ python noa_tts_daemon.py --voice noa
 |---|---|---|
 | `POST` | `/say` | 本文（プレーン or JSON）を読み上げ。トグルOFFでも必ず読む |
 | `POST` | `/say_wav` | 合成WAVを返す（再生しない）。クライアント側で再生したい時に |
-| `POST` | `/say_dialogue` | 複数キャラの掛け合いを声を切り替えて連続再生（`{"segments":[{"voice","text","caption?"},…]}`） |
+| `POST` | `/say_dialogue` | 複数キャラの掛け合いを声を切り替えて連続再生（`{"segments":[{"voice","text","speed?","caption?"},…]}`） |
 | `POST` | `/v1/audio/speech` | **OpenAI TTS API 互換**。既存の OpenAI-TTS クライアントから差し替えで使える |
 | `POST` | `/stop` | 読み上げを中断 |
 | `POST` | `/voice` | ボイス切替（`{"name": "..."}`） |
@@ -275,12 +275,37 @@ python noa_tts_daemon.py --voice noa
 | `GET`  | `/vram` | VRAM 使用状況（全体／NoaTTS／空き） |
 | `POST` | `/quit` | デーモンを終了 |
 | `GET`  | `/health` | 稼働状態（ボイス・話速・各調整値・モデル等のJSON） |
-| `GET`  | `/voices` | ボイス一覧 |
+| `GET`  | `/voices` | 読み込めるボイスの一覧（`voice` 指定に使える名前） |
 
 > 🔧 **出力フォーマット**：`/say_wav` が返す WAV は **24 kHz / モノラル / 16-bit PCM** です。`/v1/audio/speech` は `response_format` で `wav` / `mp3` / `flac` / `ogg` / `opus` / `aac` / `pcm` を選べます（いずれも 24 kHz・モノラル系）。
 > リクエストのテキスト項目は、**独自APIは `text`**、**OpenAI互換は `input`** です（`Authorization` ヘッダは不要・送っても無視されます）。
 
-`/say` の JSON では `text` のほか、`volume`（0.0〜1.0）・`voice`（アクティブ声を変えず、その読み上げだけ別ボイスカードの声で読む）・`caption`（その読み上げに限り感情を上書き、Irodoriクローン用）・`cache`（true/false、その回だけキャッシュ利用を上書き）を指定できます。
+#### 読み上げオプション（全エンドポイント共通）
+
+`voice` / `speed` / `caption` / `cache` は、4つの読み上げ系エンドポイントで**同じキー名・同じ意味**で指定できます。指定した値は**その1回だけ**有効で、アクティブ声や保存済みの設定は変わりません。
+
+| オプション | 意味 | `/say` | `/say_wav` | `/say_dialogue` | `/v1/audio/speech` |
+|---|---|:-:|:-:|:-:|:-:|
+| `voice` | その読み上げだけ別ボイスカードの声で読む（`GET /voices` の名前。大文字小文字は区別しない） | ○ | ○ | ○ 各セグメント＋全体の既定 | ○ |
+| `speed` | 話速の倍率（0.25〜4.0 に丸める。`0` は指定なし＝ボイスカードの話速） | ○ | ○ | ○ 各セグメント＋全体の既定 | ○ |
+| `caption` | 感情の上書き（Irodoriクローン用）。省略＝ボイスの既定、`""`＝感情なし | ○ | ○ | ○ 各セグメント＋全体の既定 | ○ |
+| `cache` | 音声キャッシュの利用（`true`/`false`）。省略＝デーモンの既定に従う | ○ | ○ | ○ 全体のみ | ○ |
+| `volume` | 再生音量（0.0〜1.0）。**以降の読み上げにも続きます** | ○ | − 再生しないため | ○ 全体のみ | − 再生しないため |
+
+- 本文のキーだけは異なります: `/say`・`/say_wav` は `text`、`/say_dialogue` は `segments[].text`、`/v1/audio/speech` は `input`。
+- **不正な値は 400**（存在しない `voice`、数値でない `speed`、`true`/`false` でない `cache` など）。エラーの形は `/say` 系が `{"ok":false,"error":"…"}`、`/v1` が OpenAI 形式 `{"error":{"message":"…"}}` です。
+- `/v1/audio/speech` だけは、存在しない `voice`（`alloy` など OpenAI の名前）を**エラーにせずアクティブ声で読みます**（既存の OpenAI クライアントをそのまま使えるように）。
+- `GET /voices` と `voice` 指定は同じ規則（`config.json` か `config.default.json` を持つフォルダ）なので、一覧に出る名前は必ず指定できます。
+
+> ⚠️ **旧バージョンからの変わる点**
+> - `/say_dialogue` の `caption: ""` は「ボイスの既定の感情」ではなく「感情なし」になりました（`/say` と同じ意味に統一）。既定に従いたい時は `caption` を書かないか `null` にします。
+> - `cache: null` は「OFF」ではなく「指定なし（デーモンの既定に従う）」になりました。
+> - `/say_wav`・`/v1/audio/speech` も、`cache` を省略した時はデーモンの既定（`tts_cache.flag`）に従います。キャッシュを有効にしている場合は、これらのリクエストの合成結果も `cache/` に残ります。
+> - `speed` は 0.25〜4.0 に丸めるようになり、数値でない値は 500 ではなく 400 になります。
+> - `/say` の `caption: null` は「感情なし」ではなく「ボイスの既定の感情」になりました（感情なしは `""`）。
+> - `/say` の不正な `volume` は、無視して読み上げる代わりに 400 になります。
+> - `/say_dialogue` のトップレベルの `voice` / `speed` / `caption` は、以前は無視されていましたが、全セグメントの既定として効くようになりました。
+> - セグメント単位の `cache` / `volume` は指定できません（書いてもエラーにならず無視されます）。
 
 > 💾 **音声キャッシュ**：同じ「テキスト＋ボイス＋話速＋感情」の組み合わせは、合成済み WAV を再利用して即座に返します。`tts_cache.flag` または `POST /cache {"enabled":true}` で有効化。
 

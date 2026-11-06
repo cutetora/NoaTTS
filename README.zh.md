@@ -238,6 +238,7 @@ python noa_tts_daemon.py --voice noa
 |---|---|---|
 | `POST` | `/say` | 读出正文（纯文本 or JSON）。即使开关为 OFF 也必定读出 |
 | `POST` | `/say_wav` | 返回合成的 WAV（不播放）。想在客户端侧播放时使用 |
+| `POST` | `/say_dialogue` | 切换声音连续读出多个角色的对话（`{"segments":[{"voice","text","speed?","caption?"},…]}`） |
 | `POST` | `/v1/audio/speech` | **兼容 OpenAI TTS API**。可从现有 OpenAI-TTS 客户端替换使用 |
 | `POST` | `/stop` | 中断读出 |
 | `POST` | `/voice` | 切换声音（`{"name": "..."}`） |
@@ -252,12 +253,35 @@ python noa_tts_daemon.py --voice noa
 | `GET`  | `/vram` | VRAM 使用状况（整体／NoaTTS／空闲） |
 | `POST` | `/quit` | 结束守护进程 |
 | `GET`  | `/health` | 运行状态（声音・语速・各调整值・模型等的 JSON） |
-| `GET`  | `/voices` | 声音一览 |
+| `GET`  | `/voices` | 可加载的声音一览（可用于 `voice` 指定的名称） |
 
 > 🔧 **输出格式**：`/say_wav` 返回的 WAV 为 **24 kHz / 单声道 / 16-bit PCM**。`/v1/audio/speech` 可通过 `response_format` 选择 `wav` / `mp3` / `flac` / `ogg` / `opus` / `aac` / `pcm`（均为 24 kHz・单声道系）。
 > 请求中的文本项，**独自 API 为 `text`**，**OpenAI 兼容为 `input`**（无需 `Authorization` 头・即使发送也会被忽略）。
 
-`/say` 的 JSON 中，除 `text` 外，还可指定 `volume`（0.0〜1.0）、`caption`（仅对该次读出覆盖情感，用于 Irodori 克隆）与 `cache`（true/false，仅对该次覆盖是否使用缓存）。
+#### 读出选项（所有端点通用）
+
+`voice` / `speed` / `caption` / `cache` 在 4 个读出类端点上使用**相同的键名和含义**。指定的值**仅对该次请求有效**，当前声音和已保存的设置不会改变。
+
+| 选项 | 含义 | `/say` | `/say_wav` | `/say_dialogue` | `/v1/audio/speech` |
+|---|---|:-:|:-:|:-:|:-:|
+| `voice` | 仅本次用另一张声音卡来读（`GET /voices` 中的名称，不区分大小写） | ✓ | ✓ | ✓ 每段＋整体默认值 | ✓ |
+| `speed` | 语速倍率（限制在 0.25〜4.0；`0` 表示未指定→使用声音卡的语速） | ✓ | ✓ | ✓ 每段＋整体默认值 | ✓ |
+| `caption` | 覆盖情感（用于 Irodori 克隆）。省略＝声音的默认值，`""`＝无情感 | ✓ | ✓ | ✓ 每段＋整体默认值 | ✓ |
+| `cache` | 是否使用音频缓存（`true`/`false`）。省略＝遵循守护进程的默认值 | ✓ | ✓ | ✓ 仅整体 | ✓ |
+| `volume` | 播放音量（0.0〜1.0）。**之后的读出也会保持** | ✓ | −（不播放） | ✓ 仅整体 | −（不播放） |
+
+- 仅正文的键不同：`/say`・`/say_wav` 为 `text`，`/say_dialogue` 为 `segments[].text`，`/v1/audio/speech` 为 `input`。
+- **非法值返回 400**（不存在的 `voice`、非数值的 `speed`、不是 `true`/`false` 的 `cache` 等）。错误格式：`/say` 系为 `{"ok":false,"error":"…"}`，`/v1` 为 OpenAI 格式 `{"error":{"message":"…"}}`。
+- 只有 `/v1/audio/speech` 对不存在的 `voice`（如 OpenAI 的 `alloy`）**不报错**，而是用当前声音读出（以便现有 OpenAI 客户端直接可用）。
+- `GET /voices` 与 `voice` 指定使用同一规则（含 `config.json` 或 `config.default.json` 的文件夹），因此列表中的名称都可以指定。
+
+> ⚠️ **与旧版本的差异**
+> - `/say_dialogue` 的 `caption: ""` 现在表示「无情感」，而不是「声音的默认情感」（与 `/say` 统一）。想遵循默认值时，省略 `caption` 或使用 `null`。
+> - `/say` 的 `caption: null` 现在表示「声音的默认情感」（以前表示「无情感」，请改用 `""`）。
+> - `cache: null` 现在表示「未指定（遵循守护进程的默认值）」，而不是 OFF。省略 `cache` 时，`/say_wav` 与 `/v1/audio/speech` 也遵循守护进程的默认值（`tts_cache.flag`），启用缓存时它们的合成结果也会保存到 `cache/`。
+> - `speed` 被限制在 0.25〜4.0，非数值时返回 400 而不是 500。
+> - `/say` 中非法的 `volume` 现在返回 400，而不是被忽略。
+> - `/say_dialogue` 顶层的 `voice` / `speed` / `caption` 以前被忽略，现在作为所有片段的默认值生效。`cache` / `volume` 不能按片段指定（写了也不会报错，会被忽略）。
 
 > 💾 **音频缓存**：相同的「文本 ＋ 声音 ＋ 语速 ＋ 情感」组合，会复用已合成的 WAV 并即时返回。可通过 `tts_cache.flag` 或 `POST /cache {"enabled":true}` 启用。
 
