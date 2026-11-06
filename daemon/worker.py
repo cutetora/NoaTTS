@@ -43,6 +43,10 @@ class TTSWorker:
         # 音声キャッシュ(WAV使い回し)の既定。既定OFF。cache.flag が存在すればON。
         # リクエストごとの cache 指定は、生成時に引数で渡す (self には保持しない)。
         self.cache_enabled = CACHE_FLAG_PATH.exists()
+        # アクティブ声とは別に、/say_wav・/v1・掛け合いが一時ロードして使っている声 (小文字→使用中の数)。
+        # /health に出して、ボイスの整理が「使用中」の声を削除しないようにする。
+        self._busy_lock = threading.Lock()
+        self._busy = {}
         self._load()
 
     def set_cache(self, enabled) -> bool:
@@ -71,6 +75,33 @@ class TTSWorker:
         except Exception:
             pass
         return n
+
+    def _using(self, voice):
+        """with 文で「この声を使用中」と印を付ける (None/アクティブ声は印不要)。"""
+        worker = self
+
+        class _Ctx:
+            def __enter__(self_):
+                if voice and not worker._is_active_voice(voice):
+                    with worker._busy_lock:
+                        k = str(voice).lower()
+                        worker._busy[k] = worker._busy.get(k, 0) + 1
+
+            def __exit__(self_, *exc):
+                if voice and not worker._is_active_voice(voice):
+                    with worker._busy_lock:
+                        k = str(voice).lower()
+                        worker._busy[k] = worker._busy.get(k, 1) - 1
+                        if worker._busy[k] <= 0:
+                            worker._busy.pop(k, None)
+                return False
+
+        return _Ctx()
+
+    def busy_voices(self) -> list:
+        """一時ロードして使用中の声の名前 (小文字)。"""
+        with self._busy_lock:
+            return sorted(self._busy)
 
     def _is_active_voice(self, voice) -> bool:
         """voice がいまアクティブな声か。Windows のフォルダ名は大文字小文字を区別しないので
@@ -344,6 +375,11 @@ class TTSWorker:
         return vc, clone_prompt
 
     def synthesize_wav(self, text: str, voice=None, speed=None, caption=None, cache=None):
+        """_synthesize_wav の実体を、使用中の声の印 (busy_voices) つきで呼ぶ。"""
+        with self._using(voice):
+            return self._synthesize_wav(text, voice, speed, caption, cache)
+
+    def _synthesize_wav(self, text: str, voice=None, speed=None, caption=None, cache=None):
         """text を鳴らさずに合成し、結合した1本の波形 (wav, sr=ネイティブ) を返す。
         /say_wav・/v1/audio/speech 用。再生せず・output/ に依存せず・アクティブ声を切り替えない。
         voice: None/アクティブ声と同じなら現在の声、別IDなら一時ロードして使用(同checkpoint前提)。
@@ -527,7 +563,12 @@ class TTSWorker:
                         print(f"[daemon] dialogue 生成失敗: {e}", flush=True)
             gen_q.put(None)
 
-        self._run_play_loop(producer, gen_q)
+        # 再生が終わる (producer を join する) までの間、使う声を「使用中」にする
+        import contextlib
+        with contextlib.ExitStack() as stack:
+            for v in {s["voice"] for s in segs if s["voice"]}:
+                stack.enter_context(self._using(v))
+            self._run_play_loop(producer, gen_q)
 
     def _run_play_loop(self, producer, gen_q):
         """producer が gen_q に積む WAV パスを、連続ストリームで途切れなく再生する。

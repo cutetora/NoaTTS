@@ -22,6 +22,8 @@ from pathlib import Path
 
 import webview
 
+from voice import voice_trash as _vt
+
 ROOT = Path(__file__).parent
 PYTHON_EXE = sys.executable
 DAEMON_SCRIPT = ROOT / "noa_tts_daemon.py"
@@ -30,6 +32,7 @@ DAEMON_PID_PATH = ROOT / ".tts_daemon_pid"
 API_HOST = "127.0.0.1"
 API_PORT = 7870
 API_BASE = f"http://{API_HOST}:{API_PORT}"
+VOICES_DIR = ROOT / "voices"
 
 
 def port_open(port: int) -> bool:
@@ -235,6 +238,53 @@ class Api:
     def stop_speaking(self):
         return _http("/stop", "POST", "")
 
+    # ── ボイスの整理 (削除はゴミ箱へ移動 → 30日後に自動で完全削除) ──
+    # 削除は daemon の HTTP を使わず、この窓のプロセスが直接ファイルを動かす
+    # (daemon の HTTP は CORS が * で、ほかのページから叩かれうるため)。
+    # JS から渡るのは名前/項目名の文字列だけ。検証は voice_trash 側で行う。
+
+    def manage_list(self):
+        """整理カードの表示用: ボイス一覧 (同梱/読み上げ中の印つき) とゴミ箱の中身。"""
+        try:
+            _vt.purge_expired(VOICES_DIR)
+            try:
+                active, unknown = _vt.active_voice_names(ROOT, API_PORT), False
+            except _vt.TrashError:
+                active, unknown = set(), True  # 表示だけは出し、削除の時にもう一度確認して拒否する
+            return {"ok": True, "rows": _vt.voice_rows(VOICES_DIR, active),
+                    "trash": _vt.list_trash(VOICES_DIR), "active_unknown": unknown,
+                    "retention_days": _vt.RETENTION_DAYS}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
+    def trash_voice(self, name):
+        try:
+            active = _vt.active_voice_names(ROOT, API_PORT)
+            r = _vt.move_to_trash(VOICES_DIR, str(name), active)
+            return {"ok": True, **r, "retention_days": _vt.RETENTION_DAYS}
+        except _vt.TrashError as e:
+            return {"ok": False, "error": str(e)}
+        except Exception as e:
+            return {"ok": False, "error": f"削除できませんでした ({e})"}
+
+    def trash_restore(self, entry):
+        try:
+            return {"ok": True, **_vt.restore(VOICES_DIR, str(entry))}
+        except _vt.TrashError as e:
+            return {"ok": False, "error": str(e)}
+        except Exception as e:
+            return {"ok": False, "error": f"元に戻せませんでした ({e})"}
+
+    def trash_open(self):
+        """ゴミ箱フォルダをエクスプローラーで開く (開くのは固定のパスだけ)。"""
+        try:
+            d = _vt.trash_dir_for(VOICES_DIR)
+            d.mkdir(exist_ok=True)
+            os.startfile(str(d))
+            return {"ok": True}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
     def copy(self, text):
         """クリップボードへコピー。pywebview は data:/file: 描画のため
         navigator.clipboard が使えない。Python(tkinter)側で確実に書き込む。"""
@@ -310,6 +360,35 @@ HTML = r"""<!DOCTYPE html>
   .code pre{margin:0;}
   .copy{background:#3a3048;color:var(--ink);border-radius:8px;padding:6px 16px;min-width:76px;
     font-size:12.5px;font-weight:600;cursor:pointer;} .copy:hover{filter:brightness(1.2);}
+  /* ── ボイスの整理 (折りたたみ) ── */
+  .mgsum{display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none;}
+  .mgsum::-webkit-details-marker{display:none;}
+  .mgsum h2{margin:0;} .mgsum .arrow{color:var(--muted);font-size:13px;width:14px;}
+  .mgsum .cnt{font-size:12.5px;color:var(--muted);} .mgsum .sp{flex:1;}
+  .warnchip{font-size:11.5px;padding:2px 9px;border-radius:10px;background:rgba(192,57,43,.25);color:#ff9a8d;}
+  .seg{display:flex;gap:6px;margin:12px 0;}
+  .seg button{padding:7px 14px;background:#2e2640;color:var(--muted);}
+  .seg button.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;}
+  .mglist{border:1px solid var(--line);border-radius:10px;overflow:hidden;max-height:290px;overflow-y:auto;}
+  .mgrow{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);
+    background:#201a29;font-size:14px;}
+  .mgrow:last-child{border-bottom:none;}
+  .mgrow .n{flex:1;min-width:0;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .mgrow .t,.mgrow .d{font-size:12px;color:var(--muted);white-space:nowrap;}
+  .mgrow.lock{background:#1d1824;} .mgrow.lock .n{color:#7f748f;}
+  .mgrow.act{background:#1f2a26;}
+  .chip{font-size:11.5px;padding:2px 9px;border-radius:10px;background:#3a3048;color:var(--muted);white-space:nowrap;}
+  .chip.ok{background:rgba(95,216,154,.16);color:var(--ok);} .chip.red{background:rgba(192,57,43,.25);color:#ff9a8d;}
+  .mgbtn{padding:6px 10px;background:#3a3048;}
+  .mgbtn:disabled{opacity:.35;cursor:not-allowed;}
+  .over{position:fixed;inset:0;background:rgba(8,6,12,.66);display:flex;align-items:center;justify-content:center;z-index:50;}
+  .modal{width:min(440px,calc(100vw - 32px));background:var(--panel);border:1px solid #54476b;border-radius:12px;
+    padding:20px 22px;box-shadow:0 10px 30px rgba(0,0,0,.6);}
+  .modal h3{margin:0 0 8px;font-size:16px;} .modal p{margin:0;font-size:14px;color:#d7cce6;line-height:1.7;}
+  .modal p small{color:var(--muted);font-size:12.5px;}
+  .modal .acts{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+  .b-danger{background:#c0392b;}
+  .modal button:focus-visible{outline:2px solid #fff;outline-offset:2px;}
   details{margin-top:6px;} summary{cursor:pointer;color:var(--muted);font-size:13px;}
 </style></head>
 <body><div class="wrap">
@@ -365,6 +444,30 @@ HTML = r"""<!DOCTYPE html>
       oninput="document.getElementById('speedval').textContent=(+this.value).toFixed(2)"
       onchange="setSpeed()">
     <div class="msg" id="vmsg"></div>
+  </div>
+
+  <div class="card" id="mgcard">
+    <details id="mg" ontoggle="mgToggle()">
+      <summary class="mgsum"><span class="arrow" id="mgarrow">▸</span><h2>ボイスの整理</h2>
+        <span class="cnt" id="mgcnt"></span><span class="sp"></span><span class="warnchip" id="mgwarn" style="display:none"></span></summary>
+      <div class="seg">
+        <button id="tabV" class="on" onclick="mgTab('v')">ボイス <span id="nV"></span></button>
+        <button id="tabT" onclick="mgTab('t')">🗑 ゴミ箱 <span id="nT"></span></button>
+      </div>
+      <div id="paneV">
+        <input type="text" id="mgq" placeholder="🔍 名前で絞り込み" oninput="mgRender()" style="margin-bottom:10px;">
+        <div class="mglist" id="mgVlist"></div>
+      </div>
+      <div id="paneT" style="display:none;">
+        <div class="mglist" id="mgTlist"></div>
+        <div class="row sb"><button class="b-sub" onclick="mgOpenTrash()">📂 ゴミ箱フォルダを開く</button>
+          <span style="font-size:12px;color:var(--muted);">30日を過ぎたものは、起動時と削除時に自動で完全削除</span></div>
+        <div class="msg">ℹ️ 同名のボイスが既にある時は「<b>名前_復元</b>」の名前で戻します。</div>
+      </div>
+      <div class="msg" id="mgmsg"></div>
+      <div class="msg">ℹ️ 削除したボイスは <b>voices_trash</b> フォルダに <b>30日間</b>保管され、その後は自動で完全に削除されます。
+        30日以内なら「ゴミ箱」から元に戻せます。（プロジェクトフォルダの入れ直しや <code>git clean</code> でも消えます）</div>
+    </details>
   </div>
 
   <div class="card">
@@ -471,6 +574,131 @@ async function loadVoices() {
     if (n===r.active) o.selected=true; sel.appendChild(o);
   });
 }
+
+// ───────── ボイスの整理 ─────────
+let mg = {rows: [], trash: [], unknown: false, days: 30, tab: 'v'};
+const TYPE_LABEL = {clone: '🎙 クローン', design: '🎨 デザイン', custom: '🔧 カスタム'};
+
+function mkel(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+// 自作モーダル (OS 標準の confirm は白く、窓の配色と合わないため)。buttons: [{label, cls, fn}]
+// focusIdx のボタンが既定 (Enter で押される)。Esc・外側クリックは何もせず閉じる (=キャンセル)。
+function mgModal(title, bodyLines, buttons, focusIdx) {
+  closeModal();
+  const over = mkel('div', 'over'); over.id = 'modal';
+  const box = mkel('div', 'modal');
+  box.appendChild(mkel('h3', '', title));
+  const p = mkel('p');
+  bodyLines.forEach((ln, i) => {
+    if (i) p.appendChild(document.createElement('br'));
+    const parts = Array.isArray(ln) ? ln : [ln];
+    parts.forEach(x => { if (typeof x === 'string') p.appendChild(document.createTextNode(x)); else p.appendChild(x); });
+  });
+  box.appendChild(p);
+  const acts = mkel('div', 'acts'); const bs = [];
+  buttons.forEach(b => {
+    const btn = mkel('button', b.cls || 'b-sub', b.label);
+    btn.onclick = () => { closeModal(); if (b.fn) b.fn(); };
+    acts.appendChild(btn); bs.push(btn);
+  });
+  box.appendChild(acts); over.appendChild(box);
+  over.addEventListener('mousedown', ev => { if (ev.target === over) closeModal(); });
+  over._onkey = ev => { if (ev.key === 'Escape') { ev.preventDefault(); closeModal(); } };
+  document.addEventListener('keydown', over._onkey);
+  document.body.appendChild(over);
+  (bs[focusIdx] || bs[bs.length - 1]).focus();
+}
+function closeModal() {
+  const o = document.getElementById('modal');
+  if (!o) return;
+  document.removeEventListener('keydown', o._onkey);
+  o.remove();
+}
+function mgNote(t) { document.getElementById('mgmsg').textContent = t || ''; }
+function mgToggle() {
+  const open = document.getElementById('mg').open;
+  document.getElementById('mgarrow').textContent = open ? '▾' : '▸';
+  if (open) loadManage();
+}
+function mgTab(t) {
+  mg.tab = t;
+  document.getElementById('tabV').className = t === 'v' ? 'on' : '';
+  document.getElementById('tabT').className = t === 't' ? 'on' : '';
+  document.getElementById('paneV').style.display = t === 'v' ? '' : 'none';
+  document.getElementById('paneT').style.display = t === 't' ? '' : 'none';
+}
+async function loadManage() {
+  if (!api) return;
+  let r; try { r = await api.manage_list(); } catch (e) { r = {ok: false, error: String(e)}; }
+  if (!r || !r.ok) { mgNote('一覧を読み込めませんでした: ' + ((r && r.error) || '')); return; }
+  mg.rows = r.rows || []; mg.trash = r.trash || []; mg.unknown = !!r.active_unknown; mg.days = r.retention_days || 30;
+  document.getElementById('nV').textContent = mg.rows.length;
+  document.getElementById('nT').textContent = mg.trash.length;
+  document.getElementById('mgcnt').textContent = 'ボイス ' + mg.rows.length + ' ／ ゴミ箱 ' + mg.trash.length;
+  const soon = mg.trash.filter(t => t.days_left <= 2).length;
+  const w = document.getElementById('mgwarn');
+  w.style.display = soon ? '' : 'none';
+  w.textContent = '⚠ あと2日以内に完全削除: ' + soon + '件';
+  mgRender();
+}
+function mgRender() {
+  const q = (document.getElementById('mgq').value || '').trim().toLowerCase();
+  const vl = document.getElementById('mgVlist'); vl.innerHTML = '';
+  const rows = mg.rows.filter(r => !q || r.name.toLowerCase().includes(q));
+  if (!rows.length) vl.appendChild(mkel('div', 'mgrow', q ? '一致するボイスがありません' : 'ボイスがありません'));
+  rows.forEach(r => {
+    const row = mkel('div', 'mgrow' + (r.protected ? ' lock' : r.active ? ' act' : ''));
+    row.appendChild(mkel('div', 'n', r.name));
+    row.appendChild(mkel('div', 't', TYPE_LABEL[r.type] || r.type || ''));
+    row.appendChild(mkel('div', 'd', r.last_used ? r.last_used.slice(0, 10) : '未使用'));
+    if (r.protected) row.appendChild(mkel('span', 'chip', '🔒 同梱'));
+    else if (r.active) row.appendChild(mkel('span', 'chip ok', '▶ 読み上げ中'));
+    const b = mkel('button', 'mgbtn', '🗑');
+    b.title = r.protected ? '同梱ボイスは削除できません' : r.active ? '読み上げ中のボイスは削除できません' : 'ゴミ箱へ移動';
+    b.disabled = !!r.reason;
+    b.onclick = () => mgAskTrash(r.name);
+    row.appendChild(b);
+    vl.appendChild(row);
+  });
+  if (mg.unknown) mgNote('⚠ 読み上げ中のボイスを確認できませんでした (daemon が応答していません)。削除は確認できるまで拒否されます。');
+  const tl = document.getElementById('mgTlist'); tl.innerHTML = '';
+  if (!mg.trash.length) tl.appendChild(mkel('div', 'mgrow', 'ゴミ箱は空です'));
+  mg.trash.forEach(t => {
+    const row = mkel('div', 'mgrow');
+    row.appendChild(mkel('div', 'n', t.name));
+    row.appendChild(mkel('div', 'd', '削除 ' + t.deleted_at));
+    row.appendChild(mkel('span', 'chip' + (t.days_left <= 2 ? ' red' : ''), 'あと ' + t.days_left + '日'));
+    const b = mkel('button', 'mgbtn', '↩ 元に戻す');
+    b.onclick = () => mgRestore(t.entry, t.name);
+    row.appendChild(b);
+    tl.appendChild(row);
+  });
+}
+function mgAskTrash(name) {
+  mgModal('ボイスをゴミ箱へ移動',
+    [['「', mkel('b', '', name), '」をゴミ箱へ移動しますか？'],
+     [mkel('small', '', mg.days + '日間は「ボイスの整理 → ゴミ箱」から元に戻せます。' + mg.days + '日後に自動で完全に削除されます。')]],
+    [{label: 'ゴミ箱へ移動', cls: 'b-danger', fn: () => mgDoTrash(name)},
+     {label: 'キャンセル', cls: 'b-pri'}], 1);
+}
+async function mgDoTrash(name) {
+  let r; try { r = await api.trash_voice(name); } catch (e) { r = {ok: false, error: String(e)}; }
+  if (r && r.ok) { mgNote('「' + r.name + '」をゴミ箱へ移動しました。' + mg.days + '日後に自動で完全削除されます。'); }
+  else mgModal('削除できません', [(r && r.error) || '不明なエラー'], [{label: 'OK', cls: 'b-pri'}], 0);
+  await loadManage(); loadVoices();
+}
+async function mgRestore(entry, name) {
+  let r; try { r = await api.trash_restore(entry); } catch (e) { r = {ok: false, error: String(e)}; }
+  if (r && r.ok) mgNote((r.renamed ? '「' + name + '」は同名のボイスがあったため「' + r.restored + '」の名前で戻しました。'
+                                   : '「' + r.restored + '」を元に戻しました。') + (r.warning ? ' ⚠ ' + r.warning : ''));
+  else mgModal('元に戻せません', [(r && r.error) || '不明なエラー'], [{label: 'OK', cls: 'b-pri'}], 0);
+  await loadManage(); loadVoices();
+}
+async function mgOpenTrash() { try { await api.trash_open(); } catch (e) {} }
 
 async function loadModels() {
   const r = await api.models();
@@ -599,7 +827,7 @@ async function cp(el){
 async function init(){
   api = window.pywebview.api;
   document.getElementById('stext').textContent='読み込み中…';
-  await loadVoices(); await loadModels(); await refresh(); setInterval(refresh, 4000);
+  await loadVoices(); await loadModels(); await refresh(); setInterval(refresh, 4000); loadManage();
 }
 
 // pywebviewready が発火すれば即 init。取りこぼし対策として、

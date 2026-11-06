@@ -533,6 +533,14 @@ def main():
     except Exception:
         pass
 
+    # ゴミ箱 (voices_trash/) の期限切れ (30日超) を完全削除する。常駐のトレイで起動時に掃除しておけば、
+    # 整理画面を開かない人でも古いボイスが残り続けない。失敗しても起動は止めない。
+    try:
+        from voice import voice_trash
+        voice_trash.purge_expired(VOICES_DIR)
+    except Exception:
+        pass
+
     # Gradio起動
     state["gradio_proc"] = launch_gradio()
     # 読み上げ daemon(noa) も起動する(「閉じる=全停止」と対称に、開く=全起動)。
