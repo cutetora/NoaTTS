@@ -2,7 +2,7 @@
 import gradio as gr
 
 from engine.tts_engine import TTSEngine
-from voice.voice_creation import gen_voice_design, save_voice_action
+from voice.voice_creation import gen_voice_design, save_voice_action, save_design_as_clone
 
 
 def build_design_tab():
@@ -10,6 +10,9 @@ def build_design_tab():
     with gr.Tab("B. ボイスデザイン [Qwen3推奨]"):
         vd_audios = gr.State([])
         vd_seeds = gr.State([])
+        # 生成時のテスト文/言語/声の説明。生成後に入力欄を編集しても、クローン保存の
+        # ref_text が実際に喋らせた文と食い違わないよう、生成時点の値を持っておく。
+        vd_gen_meta = gr.State({})
         with gr.Row():
             # 左カラム: 入力・操作・保存
             with gr.Column(scale=1):
@@ -42,6 +45,23 @@ def build_design_tab():
                 vd_save_btn = gr.Button("キャラカード保存", variant="primary")
                 vd_save_status = gr.Textbox(label="保存結果", interactive=False)
 
+                # ── Save as clone card (デザインの声を参照音声として固定) ──
+                gr.Markdown(
+                    "#### クローンカードとして保存（この声を固定）\n"
+                    "上で選んだサンプルを**参照音声**、テスト文を**書き起こし**、"
+                    "seed をそのままクローンカードに引き継ぎます。"
+                    "声質は参照音声で決まり、クローンの seed は抑揚の揺れを固定します。"
+                    "参照音声は 3〜10 秒が目安です。"
+                )
+                vd_clone_name = gr.Textbox(
+                    label="クローンカード名", placeholder="空なら「キャラ名_clone」")
+                vd_clone_overwrite = gr.Checkbox(
+                    label="同名カードがあれば上書きを許可（フォルダを削除して作り直す）",
+                    value=False)
+                vd_clone_btn = gr.Button("クローンカードとして保存", variant="secondary")
+                vd_clone_status = gr.Textbox(
+                    label="クローン保存結果", interactive=False, lines=3)
+
             # 右カラム: 生成結果(サンプル試聴)
             with gr.Column(scale=1):
                 vd_audio1 = gr.Audio(label="サンプル 1")
@@ -63,12 +83,14 @@ def build_design_tab():
                                              label=f"サンプル {i+1}"))
             seed_info = (f"**保存サンプル 1 → seed={seeds[0]}** （このseedがカードに保存され再現に使われます）"
                          if seeds else "*（サンプル未生成）*")
-            return [audios, seeds, msg, seed_info] + updates
+            meta = {"text": text, "lang": lang, "desc": desc} if audios else {}
+            return [audios, seeds, msg, seed_info, meta] + updates
 
         vd_btn.click(
             _gen_design,
             inputs=[vd_lang, vd_desc, vd_text, vd_num],
-            outputs=[vd_audios, vd_seeds, vd_status, vd_save_seed_info] + vd_all_audios,
+            outputs=[vd_audios, vd_seeds, vd_status, vd_save_seed_info, vd_gen_meta]
+                    + vd_all_audios,
         )
 
         def _show_save_seed(idx, seeds):
@@ -99,4 +121,30 @@ def build_design_tab():
             inputs=[vd_save_idx, vd_save_name, vd_audios, vd_seeds,
                     vd_lang, vd_desc, vd_save_attr],
             outputs=[vd_save_status, gr.State()],
+        )
+
+        def _save_design_clone(idx, clone_name, overwrite, audios, seeds, meta,
+                               char_name, attr):
+            i = int(idx) - 1
+            if not audios or i >= len(audios):
+                return "サンプルを先に生成してください", gr.update(value=False)
+            name = (clone_name or "").strip()
+            if not name and (char_name or "").strip():
+                name = f"{char_name.strip()}_clone"
+            seed = seeds[i] if seeds and i < len(seeds) else -1
+            meta = meta or {}
+            msg, _saved = save_design_as_clone(
+                name, audios[i], seed,
+                ref_text=meta.get("text", ""), language=meta.get("lang", "Japanese"),
+                voice_desc=meta.get("desc", ""), attribute=attr,
+                overwrite=bool(overwrite),
+            )
+            # 上書き許可は1回きり (次の保存で誤って消さないよう毎回戻す)
+            return msg, gr.update(value=False)
+
+        vd_clone_btn.click(
+            _save_design_clone,
+            inputs=[vd_save_idx, vd_clone_name, vd_clone_overwrite, vd_audios,
+                    vd_seeds, vd_gen_meta, vd_save_name, vd_save_attr],
+            outputs=[vd_clone_status, vd_clone_overwrite],
         )

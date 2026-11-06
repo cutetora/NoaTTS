@@ -11,7 +11,7 @@ import gradio as gr
 
 from engine.engine_control import cfg, vm, monitor, get_engine
 from engine.audio_utils import trim_silence, trim_interior_pauses, adjust_speed
-from voice.voice_creation import test_saved_voice
+from voice.voice_creation import test_saved_voice, extract_prompt_cache
 
 
 def _load_clone_prompt(vc_cfg):
@@ -49,32 +49,8 @@ def _tune_load(name):
 
 
 def _tune_extract_prompt(name):
-    if not name:
-        return "ボイスを選択してください"
-    try:
-        vc_cfg = vm.load_voice(name)
-        if not vc_cfg.ref_audio_path or not os.path.exists(vc_cfg.ref_audio_path):
-            return "ref_audioが見つかりません"
-        eng = get_engine()
-        monitor.start(f"Prompt抽出: {name}")
-        prompt = eng.extract_clone_prompt(
-            ref_audio=vc_cfg.ref_audio_path,
-            ref_text=vc_cfg.ref_text,
-        )
-        # Save prompt
-        import pickle
-        voice_dir = Path(cfg.voices_dir) / name
-        voice_dir.mkdir(parents=True, exist_ok=True)
-        prompt_path = voice_dir / "clone_prompt.pkl"
-        with open(str(prompt_path), "wb") as f:
-            pickle.dump(prompt, f)
-        vc_cfg.clone_prompt_path = str(prompt_path)
-        vm.save_voice(vc_cfg)
-        monitor.finish("Prompt抽出完了")
-        return "✅ キャッシュ済み"
-    except Exception as e:
-        monitor.finish(f"エラー: {e}")
-        return f"エラー: {e}"
+    # 実体は voice_creation.extract_prompt_cache (デザイン→クローン保存と共用)
+    return extract_prompt_cache(name)
 
 
 def _tune_test(name, temp, seed, speed, max_pause, test_text, emotion_caption=""):
