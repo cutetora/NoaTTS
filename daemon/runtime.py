@@ -66,18 +66,19 @@ _speak_lock = threading.Lock()
 _current_speak_thread = None
 
 
-def dispatch_speak(worker, cleaned: str, caption=None, cache=None):
+def dispatch_speak(worker, cleaned: str, caption=None, cache=None, speed=None):
     """前の読み上げをキャンセルして新しいテキストの読み上げを開始する。
     pipe・ファイル監視・HTTP の全経路から呼ばれる共通入口。
-    caption: HTTP /say で指定された一時感情 (None=ボイス既定)。
-    cache:   HTTP /say で指定された一時キャッシュON/OFF (None=既定に従う)。"""
+    caption: HTTP /say で指定された一時感情 (None=ボイス既定, ""=なし)。
+    cache:   HTTP /say で指定された一時キャッシュON/OFF (None=既定に従う)。
+    speed:   HTTP /say で指定された一時話速 (None=ボイスの speed)。"""
     global _current_speak_thread
     with _speak_lock:
         worker.cancel()
         prev = _current_speak_thread
         if prev is not None and prev.is_alive():
             prev.join(timeout=2.0)
-        t = threading.Thread(target=worker.speak, args=(cleaned, caption, cache), daemon=True)
+        t = threading.Thread(target=worker.speak, args=(cleaned, caption, cache, speed), daemon=True)
         _current_speak_thread = t
         t.start()
 

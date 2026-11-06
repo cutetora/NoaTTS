@@ -233,6 +233,7 @@ While the daemon is running, opening `http://127.0.0.1:7870/` in a browser bring
 |---|---|---|
 | `POST` | `/say` | Reads aloud the body (plain or JSON). Always reads even when the toggle is OFF |
 | `POST` | `/say_wav` | Returns the synthesized WAV (does not play it). For when you want to play it on the client side |
+| `POST` | `/say_dialogue` | Reads a multi-character dialogue, switching voices (`{"segments":[{"voice","text","speed?","caption?"},…]}`) |
 | `POST` | `/v1/audio/speech` | **OpenAI TTS API compatible.** Usable as a drop-in replacement from an existing OpenAI-TTS client |
 | `POST` | `/stop` | Interrupts the read-aloud |
 | `POST` | `/voice` | Switches voice (`{"name": "..."}`) |
@@ -247,12 +248,35 @@ While the daemon is running, opening `http://127.0.0.1:7870/` in a browser bring
 | `GET`  | `/vram` | VRAM usage status (total / NoaTTS / free) |
 | `POST` | `/quit` | Shuts down the daemon |
 | `GET`  | `/health` | Operating status (JSON with voice, speech speed, each adjustment value, model, etc.) |
-| `GET`  | `/voices` | List of voices |
+| `GET`  | `/voices` | List of loadable voices (names usable for `voice`) |
 
 > 🔧 **Output format**: The WAV returned by `/say_wav` is **24 kHz / mono / 16-bit PCM**. For `/v1/audio/speech`, you can choose `response_format` from `wav` / `mp3` / `flac` / `ogg` / `opus` / `aac` / `pcm` (all 24 kHz · mono-based).
 > The text field in a request is **`text` for the native API** and **`input` for the OpenAI-compatible one** (the `Authorization` header is not required, and is ignored if sent).
 
-In the `/say` JSON, besides `text`, you can specify `volume` (0.0–1.0), `caption` (overrides emotion for that read-aloud only, for Irodori cloning), and `cache` (true/false, overrides cache use for that call only).
+#### Read-aloud options (shared by all endpoints)
+
+`voice` / `speed` / `caption` / `cache` use the **same key names and meaning** on the four read-aloud endpoints. A value you specify applies to **that one request only** — the active voice and saved settings do not change.
+
+| Option | Meaning | `/say` | `/say_wav` | `/say_dialogue` | `/v1/audio/speech` |
+|---|---|:-:|:-:|:-:|:-:|
+| `voice` | Read with another voice card just for this request (a name from `GET /voices`; case-insensitive) | ✓ | ✓ | ✓ per segment + a default for all | ✓ |
+| `speed` | Speech-speed multiplier (clamped to 0.25–4.0; `0` = not specified → the voice card's speed) | ✓ | ✓ | ✓ per segment + a default for all | ✓ |
+| `caption` | Emotion override (for Irodori cloning). Omitted = the voice's default; `""` = no emotion | ✓ | ✓ | ✓ per segment + a default for all | ✓ |
+| `cache` | Use the audio cache (`true`/`false`). Omitted = follow the daemon's default | ✓ | ✓ | ✓ whole request only | ✓ |
+| `volume` | Playback volume (0.0–1.0). **Persists for later read-alouds** | ✓ | − (no playback) | ✓ whole request only | − (no playback) |
+
+- Only the body key differs: `text` for `/say` and `/say_wav`, `segments[].text` for `/say_dialogue`, `input` for `/v1/audio/speech`.
+- **Invalid values return 400** (unknown `voice`, non-numeric `speed`, a `cache` that is not `true`/`false`, etc.). The error shape is `{"ok":false,"error":"…"}` for the `/say` family and the OpenAI shape `{"error":{"message":"…"}}` for `/v1`.
+- Only `/v1/audio/speech` does **not** error on an unknown `voice` (e.g. OpenAI names such as `alloy`); it reads with the active voice so existing OpenAI clients keep working.
+- `GET /voices` and `voice` use the same rule (a folder with `config.json` or `config.default.json`), so every listed name can be specified.
+
+> ⚠️ **Changes from earlier versions**
+> - `caption: ""` in `/say_dialogue` now means "no emotion" instead of "the voice's default emotion" (unified with `/say`). To follow the default, omit `caption` or use `null`.
+> - `caption: null` in `/say` now means "the voice's default emotion" (it used to mean "no emotion"; use `""` for that).
+> - `cache: null` now means "not specified (follow the daemon's default)" instead of OFF. `/say_wav` and `/v1/audio/speech` also follow the daemon's default (`tts_cache.flag`) when `cache` is omitted, so with the cache enabled their results are also kept in `cache/`.
+> - `speed` is clamped to 0.25–4.0, and a non-numeric value returns 400 instead of 500.
+> - An invalid `volume` in `/say` now returns 400 instead of being ignored.
+> - Top-level `voice` / `speed` / `caption` in `/say_dialogue`, previously ignored, now act as defaults for all segments. `cache` / `volume` cannot be set per segment (they are ignored without an error).
 
 > 💾 **Audio cache**: The same combination of "text + voice + speech speed + emotion" reuses an already-synthesized WAV and returns instantly. Enable it with `tts_cache.flag` or `POST /cache {"enabled":true}`.
 
