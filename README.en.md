@@ -358,6 +358,16 @@ Place each voice's `config.json` (speaker, seed, reference audio, speech speed, 
 
 > ⚠️ **About the bundled voice**: The only voice bundled in this repository is `noa` (self-made). If you redistribute it with a voice you cloned (using a third party's recording as the reference audio), check the rights yourself.
 
+### Deleting voices and the trash 🗑
+
+Deleting a voice does **not** erase it immediately. It is moved to the `voices_trash/` folder (in the project root) and kept for **30 days**, after which it is deleted automatically. Within 30 days you can restore it.
+
+- **Where**: open "⚙️ Settings" (読み上げ設定) from the tray and expand **"Voice cleanup" (ボイスの整理)**. Delete with 🗑 in the list (with a filter box); restore with "↩ Restore" on the "Trash" tab. The "Delete this voice" button in Voice Studio uses the same trash.
+- **Voices that cannot be deleted**: the bundled voices (`noa`, `man`) and **the voice currently in use for reading aloud**. They are shown greyed out with the reason.
+- **Restoring**: if a voice with the same name already exists, it is restored as "`name_復元`" (restored).
+- **When it is erased for good**: items older than 30 days are deleted automatically when the tray starts and whenever you delete a voice.
+- ⚠️ `voices_trash/` lives inside the project folder. Re-installing the folder or running `git clean` also erases the trash.
+
 ---
 
 ## Folder structure (for developers)

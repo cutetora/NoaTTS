@@ -99,3 +99,6 @@ dist/
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# ボイスのゴミ箱 (削除したボイスの30日保管。実行時データ)
+voices_trash/

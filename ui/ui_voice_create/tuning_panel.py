@@ -6,14 +6,37 @@ import gradio as gr
 
 from engine.engine_control import cfg, vm
 from engine.emotion_emoji import EMOTION_EMOJI
+from pathlib import Path
+
+from voice import voice_trash
 from voice.voice_creation import (
-    preview_voice, get_voice_icon_path, set_voice_icon_action, delete_voice_action,
+    preview_voice, get_voice_icon_path, set_voice_icon_action,
 )
 from .tuning_logic import (
     _tune_refresh, _tune_load, _tune_extract_prompt, _tune_test,
     _tune_random_test, _tune_random5_seeds, _tune_seed_random3,
     _tune_emotion4_test, _tune_emotion4b_test, _tune_save,
 )
+
+
+def _delete_to_trash(name, allow):
+    """ボイスをゴミ箱へ移動する (完全削除ではない。30日後に自動で完全削除)。
+    確認チェックが無い・読み上げ中・同梱のボイスは移動せず、理由を返す。
+    戻り値: (結果の文, ボイス一覧の更新, 確認チェックの更新=毎回 OFF に戻す)。"""
+    off = gr.update(value=False)
+    if not name:
+        return "ボイスを選択してください", gr.update(), off
+    if not allow:
+        return "「削除を許可」にチェックしてから押してください", gr.update(), off
+    try:
+        root = Path(cfg.voices_dir).resolve().parent
+        active = voice_trash.active_voice_names(root)
+        r = voice_trash.move_to_trash(cfg.voices_dir, name, active)
+    except voice_trash.TrashError as e:
+        return str(e), gr.update(), off
+    return (f"'{r['name']}' をゴミ箱へ移動しました。{voice_trash.RETENTION_DAYS}日後に自動で完全削除されます"
+            f"（{voice_trash.TRASH_DIRNAME} フォルダ。読み上げ設定の「ボイスの整理」から元に戻せます）",
+            gr.update(choices=vm.get_voice_choices()), off)
 
 
 def build_tuning_panel():
@@ -184,6 +207,8 @@ def build_tuning_panel():
         tune_icon_current = gr.Image(label="現在のアイコン", interactive=False, height=160)
     tune_icon_set_btn = gr.Button("このボイスのトレイアイコンに設定", variant="primary")
     tune_icon_status = gr.Textbox(label="アイコン設定結果", interactive=False)
+    tune_del_ok = gr.Checkbox(
+        label="削除を許可（ゴミ箱へ移動。30日間は元に戻せて、その後は自動で完全削除）", value=False)
     with gr.Row():
         tune_del_btn = gr.Button("このボイスを削除", variant="stop")
     tune_del_status = gr.Textbox(label="削除結果", interactive=False)
@@ -196,7 +221,7 @@ def build_tuning_panel():
         outputs=[tune_icon_status],
     ).then(get_voice_icon_path, inputs=[tune_voice_dd], outputs=[tune_icon_current])
     tune_del_btn.click(
-        delete_voice_action, inputs=[tune_voice_dd],
-        outputs=[tune_del_status, tune_voice_dd],
+        _delete_to_trash, inputs=[tune_voice_dd, tune_del_ok],
+        outputs=[tune_del_status, tune_voice_dd, tune_del_ok],
     )
     return tune_temp, tune_extract_btn

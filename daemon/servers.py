@@ -191,6 +191,8 @@ def http_server(worker):
                            "text/html; charset=utf-8")
             elif path == "/health":
                 self._json(200, {"ok": True, "voice": worker.voice_name,
+                                 # アクティブ声とは別に、一時ロードして使用中の声 (ボイスの整理が削除を拒否する)
+                                 "busy_voices": worker.busy_voices(),
                                  "speaking": is_speaking(), "port": HTTP_PORT,
                                  "speed": worker.speed, "gap": tuning._gap_sec,
                                  "pause": worker.pause, "firstcut": tuning._first_cut,

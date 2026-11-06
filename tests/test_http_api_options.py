@@ -274,6 +274,18 @@ finally:
     worker_mod.os.replace = _real_replace
 check("os.replace が失敗しても音声は返り、.tmp は残らない", len(wav_f) == 100 and not list((tmp / "cache").glob("*.tmp")))
 
+# 一時ロードした声の使用中の印 (ボイスの整理が削除を拒否するため /health に出す)
+w._busy_lock = threading.Lock(); w._busy = {}
+seen = []
+w._load_vc_only = lambda name: (w._vc, None)
+_core = w._gen_core
+w._gen_core = lambda *a, **k: (seen.append(w.busy_voices()), _core(*a, **k))[1]
+w.synthesize_wav("使用中テスト", voice="Other", cache=False)
+check("別の声を一時ロードしている間は busy_voices に載り、終わると外れる", seen and all(s == ["other"] for s in seen) and w.busy_voices() == [], f"{seen} / {w.busy_voices()}")
+seen.clear(); w.synthesize_wav("アクティブ声", voice="noa", cache=False)
+check("アクティブ声 (大文字小文字違いも) は busy に載せない", all(s == [] for s in seen))
+w._gen_core = _core
+
 wav, sr = w.synthesize_wav("こんにちは。ありがとう。", caption="", speed=2.0, cache=False)
 check("synthesize_wav も caption/speed を引数で受ける", len(wav) > 0 and gen_calls[-1][1] == "" and gen_calls[-1][2] == 2.0, str(gen_calls[-2:]))
 
